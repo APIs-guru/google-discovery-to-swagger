@@ -1,32 +1,12 @@
 #!/usr/bin/node
 'use strict';
 
-var assert = require('assert')
-var Client = require('node-rest-client').Client;
-var Tool = require('swagger-tools').specs.v2;
+var assert = require('assert');
+var RestClient = require('node-rest-client').Client;
+var SrTools = require('swagger-tools').specs.v2;
 var fs = require('fs');
 var mkdirp = require('mkdirp').sync;
 var DiscoveryToSwagger = require('../src/index.js');
-
-function validateSwagger(swagger, cb) {
-  //Trick to get rid of undefined properties
-  var strSwagger = JSON.stringify(swagger, null, 2);
-  swagger = JSON.parse(strSwagger);
-
-  return Tool.validate(swagger, function (validationError, validationResults) {
-    if (validationError) {
-      console.log(validationError);
-      process.exit(1);
-    }
-
-    if (validationResults && validationResults.errors && validationResults.errors.length) {
-      console.log(strSwagger);
-      console.log(validationResults.errors);
-      process.exit(1);
-    }
-    cb(strSwagger);
-  });
-}
 
 if (!process.argv[2]) {
   console.log('missing directory name');
@@ -36,13 +16,13 @@ if (!process.argv[2]) {
 mkdirp(process.argv[2]);
 process.chdir(process.argv[2]);
 
-var discovery = new Client();
+var discovery = new RestClient();
 discovery.get('https://www.googleapis.com/discovery/v1/apis', processList);
 
 function processList(data,response) {
   data = JSON.parse(data);
-  assert.equal(data.kind, 'discovery#directoryList')
-  assert.equal(data.discoveryVersion, 'v1')
+  assert.equal(data.kind, 'discovery#directoryList');
+  assert.equal(data.discoveryVersion, 'v1');
 
   //FIXME: data.preferred
 
@@ -53,7 +33,7 @@ function processList(data,response) {
 
 function processAPI(data) {
   data = JSON.parse(data);
-  assert.equal(data.kind, 'discovery#restDescription')
+  assert.equal(data.kind, 'discovery#restDescription');
 
   //blacklist
   if ([
@@ -88,7 +68,27 @@ function saveSwagger(name, version, swagger) {
   mkdirp(path);
   path += version + '/';
   mkdirp(path);
-  path += 'swagger.json'
-  fs.writeFileSync(path, swagger)
+  path += 'swagger.json';
+  fs.writeFileSync(path, swagger);
   console.log(path);
+}
+
+function validateSwagger(swagger, cb) {
+  //Trick to get rid of undefined properties
+  var strSwagger = JSON.stringify(swagger, null, 2);
+  swagger = JSON.parse(strSwagger);
+
+  return SrTools.validate(swagger, function (validationError, validationResults) {
+    if (validationError) {
+      console.log(validationError);
+      process.exit(1);
+    }
+
+    if (validationResults && validationResults.errors && validationResults.errors.length) {
+      console.log(strSwagger);
+      console.log(validationResults.errors);
+      process.exit(1);
+    }
+    cb(strSwagger);
+  });
 }
