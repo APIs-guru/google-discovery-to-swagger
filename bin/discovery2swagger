@@ -5,6 +5,7 @@ var assert = require('assert')
 var Client = require('node-rest-client').Client;
 var Tool = require('swagger-tools').specs.v2;
 var fs = require('fs');
+var mkdirp = require('mkdirp').sync;
 var DiscoveryToSwagger = require('../src/index.js');
 
 function validateSwagger(swagger, cb) {
@@ -32,7 +33,7 @@ if (!process.argv[2]) {
   process.exit(1);
 }
 
-mkdirSafe(process.argv[2]);
+mkdirp(process.argv[2]);
 process.chdir(process.argv[2]);
 
 var discovery = new Client();
@@ -84,19 +85,10 @@ function processAPI(data) {
 
 function saveSwagger(name, version, swagger) {
   var path = name + '/';
-  mkdirSafe(path);
+  mkdirp(path);
   path += version + '/';
-  mkdirSafe(path);
+  mkdirp(path);
   path += 'swagger.json'
   fs.writeFileSync(path, swagger)
   console.log(path);
-}
-
-function mkdirSafe(path) {
-  try {
-    fs.mkdirSync(path);
-  } catch (e) {
-    if (e.code !== 'EEXIST')
-      throw e;
-  }
 }
