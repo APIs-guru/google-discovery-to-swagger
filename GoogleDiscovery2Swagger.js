@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-"use strict";
+'use strict';
 
 var assert = require('assert')
 var _ = require('underscore');
@@ -32,7 +32,7 @@ function validateSwagger(swagger, cb) {
 }
 
 if (!process.argv[2]) {
-  console.log("missing directory name");
+  console.log('missing directory name');
   process.exit(1);
 }
 
@@ -40,7 +40,7 @@ mkdirSafe(process.argv[2]);
 process.chdir(process.argv[2]);
 
 var discovery = new Client();
-discovery.get("https://www.googleapis.com/discovery/v1/apis", processList);
+discovery.get('https://www.googleapis.com/discovery/v1/apis', processList);
 
 function processList(data,response) {
   data = JSON.parse(data);
@@ -63,20 +63,20 @@ function processAPI(data) {
 
   if ([
          //missing API description
-         "cloudlatencytest:v2",
+         'cloudlatencytest:v2',
          //asterisk in path
-         "admin:directory_v1",
+         'admin:directory_v1',
          //plus in path
-         "pubsub:v1beta1",
-         "pubsub:v1beta1a",
-         "pubsub:v1beta2",
+         'pubsub:v1beta1',
+         'pubsub:v1beta1a',
+         'pubsub:v1beta2',
          //FIXME: bug with default value, not matching enum definition
-         "blogger:v3",
-         "youtube:v3",
+         'blogger:v3',
+         'youtube:v3',
          //FIXME
          //circular reference in MapFolder/MapItem
-         "mapsengine:exp2",
-         "mapsengine:v1",
+         'mapsengine:exp2',
+         'mapsengine:v1',
        ].indexOf(data.id) >= 0) {
       return;
   }
@@ -101,7 +101,7 @@ function processAPI(data) {
   var srGlobalParameters = processGlobalParameters(data.parameters, srGlobalRefParameters);
 
   var swagger = {
-    swagger: "2.0",
+    swagger: '2.0',
     info: {
       title: data.title,
       description: data.description,
@@ -112,7 +112,7 @@ function processAPI(data) {
       version: data.version,
     },
     host: rootUrl.host(),
-    basePath: "/" + data.servicePath.replace(/^\/|\/$/, ""),
+    basePath: '/' + data.servicePath.replace(/^\/|\/$/, ''),
     schemes: [rootUrl.scheme()],
     externalDocs: {
       url: data.documentationLink,
@@ -122,14 +122,14 @@ function processAPI(data) {
     parameters: srGlobalParameters,
   };
 
-  //if ("auth" in data) {
-  //  assert("oauth2" in data.auth);
+  //if ('auth' in data) {
+  //  assert('oauth2' in data.auth);
 
   //  _.extend(swagger, {
   //    security: {
   //    },
   //    securityDefinitions: {
-  //      type: "oauth2",
+  //      type: 'oauth2',
   //    }
   //  });
   //  var auth = data.auth;
@@ -172,7 +172,7 @@ function processGlobalParameters(parameters, srGlobalRefParameters) {
 }
 
 function fixRef(ref) {
-  return "#/definitions/" + ref;
+  return '#/definitions/' + ref;
 }
 
 function processDefinitions(schemas) {
@@ -180,28 +180,28 @@ function processDefinitions(schemas) {
     return undefined;
 
   schemas = api.v4(schemas);
-  jp.apply(schemas, "$..*['$ref']" , function (value) {
+  jp.apply(schemas, '$..*["$ref"]' , function (value) {
     //if $ref isn't string it mean that this isn't reference
-    //it something called '$ref', this happens in "discovery:v1".
-    if (typeof value !== "string")
+    //it something called '$ref', this happens in 'discovery:v1'.
+    if (typeof value !== 'string')
       return value;
     return fixRef(value);
   });
 
-  jp.apply(schemas, "$..*.type" , function (value) {
-    if (value === "any")
+  jp.apply(schemas, '$..*.type' , function (value) {
+    if (value === 'any')
       return undefined;
     return value;
   });
 
   //Google for some reason code minimum/maximum as strings
   function convertInt(value) {
-    if (typeof value === "string")
+    if (typeof value === 'string')
       return parseInt(value);
     return value;
   }
-  jp.apply(schemas, "$..*.minimum" , convertInt);
-  jp.apply(schemas, "$..*.maximum" , convertInt);
+  jp.apply(schemas, '$..*.minimum' , convertInt);
+  jp.apply(schemas, '$..*.maximum' , convertInt);
 
   return schemas;
 }
@@ -209,10 +209,10 @@ function processDefinitions(schemas) {
 function processResource(resources, srGlobalRefParameters, srPaths) {
   srPaths = srPaths || {};
   //Process methods
-  if ("methods" in resources) {
+  if ('methods' in resources) {
     for (var key in resources.methods) {
       var method = resources.methods[key];
-      var srPath = "/" + method.path;
+      var srPath = '/' + method.path;
       var srOperation = method.httpMethod.toLowerCase();
 
       if (!(srPath in srPaths))
@@ -222,7 +222,7 @@ function processResource(resources, srGlobalRefParameters, srPaths) {
   }
 
   //Process recursive resources
-  if ("resources" in resources)
+  if ('resources' in resources)
     for (var key in resources.resources)
       processResource(resources.resources[key], srGlobalRefParameters, srPaths);
 
@@ -234,7 +234,7 @@ function convertMime(list) {
   _.each(list, function (pattern) {
     _.each(mime.glob(pattern), function (name) {
       //FIXME: workaround for https://github.com/swagger-api/swagger-spec/issues/268
-      if (name.indexOf("_") >= 0)
+      if (name.indexOf('_') >= 0)
         return;
       result.push(name);
     });
@@ -244,7 +244,7 @@ function convertMime(list) {
 
 function processMethod(method) {
   var srResponse = {
-    description: "Successful response",
+    description: 'Successful response',
   };
 
   var srMethod = {
@@ -266,14 +266,14 @@ function processMethod(method) {
   //FIXME: supportsSubscription
   //FIXME: oath
 
-  if ("parameters" in method)
+  if ('parameters' in method)
     srMethod.parameters = processParameterList(method);
 
   //FIXME:
-  //assert(!("request" in method));
+  //assert(!('request' in method));
 
-  if ("response" in method) {
-    assert("$ref" in method.response);
+  if ('response' in method) {
+    assert('$ref' in method.response);
     srResponse.schema = {
       $ref: fixRef(method.response.$ref)
     };
@@ -304,10 +304,10 @@ function processParameter(name, param) {
 
   assert(!('$ref' in param));
   assert(param.location == 'query' || param.location == 'path');
-  assert(["string", "number", "integer", "boolean"].indexOf(param.type) >= 0);
-  assert(!("properties" in param));
-  assert(!("additionalProperties" in param));
-  assert(!("annotations" in param));
+  assert(['string', 'number', 'integer', 'boolean'].indexOf(param.type) >= 0);
+  assert(!('properties' in param));
+  assert(!('additionalProperties' in param));
+  assert(!('annotations' in param));
 
   var srParam = {
     name: name,
@@ -321,10 +321,10 @@ function processParameter(name, param) {
   if (param.repeated === true) {
     srType = {}
     _.extend(srParam, {
-      type: "array",
+      type: 'array',
       items: srType,
       //FIXME: test
-      collectionFormat: ((srParam.in === "path") ? "csv" : "multi")
+      collectionFormat: ((srParam.in === 'path') ? 'csv' : 'multi')
     });
   }
 
@@ -336,7 +336,7 @@ function processParameter(name, param) {
   });
 
   //FIXME: enumDescriptions
-  if ("format" in param) {
+  if ('format' in param) {
     //FIXME: convert format.
   }
 
