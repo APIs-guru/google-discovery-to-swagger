@@ -9,6 +9,7 @@ var Tool = require('swagger-tools').specs.v2;
 var mime = require('mime-types');
 var jp = require('jsonpath');
 var api = require('json-schema-compatibility');
+var fs = require('fs');
 
 function validateSwagger(swagger, cb) {
   //Trick to get rid of undefined properties
@@ -29,6 +30,14 @@ function validateSwagger(swagger, cb) {
     cb(strSwagger);
   });
 }
+
+if (!process.argv[2]) {
+  console.log("missing directory name");
+  process.exit(1);
+}
+
+mkdirSafe(process.argv[2]);
+process.chdir(process.argv[2]);
 
 var discovery = new Client();
 discovery.get("https://www.googleapis.com/discovery/v1/apis", processList);
@@ -129,15 +138,29 @@ function processAPI(data) {
 
    //  swagger.security = srSecurity;
    //}
-
-   //console.log(JSON.stringify(swagger, null, 2));
-   validateSwagger(swagger, saveSwagger);
-   //console.log(JSON.stringify(swagger, null, 2));
+   validateSwagger(swagger, function (str) {
+     saveSwagger(data.name, data.version, str);
+   });
 }
 
-function saveSwagger(swagger) {
+function saveSwagger(name, version, swagger) {
+  var path = name + '/';
+  mkdirSafe(path);
+  path += version + '/';
+  mkdirSafe(path);
+  path += 'swagger.json'
+  fs.writeFileSync(path, swagger)
+  console.log(path);
 }
 
+function mkdirSafe(path) {
+  try {
+    fs.mkdirSync(path);
+  } catch (e) {
+    if (e.code !== 'EEXIST')
+      throw e;
+  }
+}
 
 function processGlobalParameters(parameters, srGlobalRefParameters) {
   var srGlobalParameters = {};
