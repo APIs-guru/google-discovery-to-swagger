@@ -43,25 +43,25 @@ var discovery = new Client();
 discovery.get("https://www.googleapis.com/discovery/v1/apis", processList);
 
 function processList(data,response) {
-   data = JSON.parse(data);
-   assert.equal(data.kind, 'discovery#directoryList')
-   assert.equal(data.discoveryVersion, 'v1')
+  data = JSON.parse(data);
+  assert.equal(data.kind, 'discovery#directoryList')
+  assert.equal(data.discoveryVersion, 'v1')
 
-   //FIXME: data.preferred
+  //FIXME: data.preferred
 
-   data.items.map(function (api) {
-     discovery.get(api.discoveryRestUrl, processAPI);
-   });
+  data.items.map(function (api) {
+    discovery.get(api.discoveryRestUrl, processAPI);
+  });
 }
 
 function processAPI(data) {
-   data = JSON.parse(data);
+  data = JSON.parse(data);
 
-   assert.equal(data.kind, 'discovery#restDescription')
-   assert.equal(data.discoveryVersion, 'v1')
-   assert.equal(data.protocol, 'rest')
+  assert.equal(data.kind, 'discovery#restDescription')
+  assert.equal(data.discoveryVersion, 'v1')
+  assert.equal(data.protocol, 'rest')
 
-   if ([
+  if ([
          //missing API description
          "cloudlatencytest:v2",
          //asterisk in path
@@ -79,68 +79,68 @@ function processAPI(data) {
          "mapsengine:v1",
        ].indexOf(data.id) >= 0) {
       return;
-   }
+  }
 
-   //fields that doesn't map to anything:
-   //	id
-   //	name
-   //	revision
-   //	icons
-   //	batchPath
+  //fields that doesn't map to anything:
+  //	id
+  //	name
+  //	revision
+  //	icons
+  //	batchPath
 
-   //deprecated:
-   //	baseUrl
-   //	basePath
+  //deprecated:
+  //	baseUrl
+  //	basePath
 
-   //FIXME:
-   //console.log(data.labels);
-   //features
+  //FIXME:
+  //console.log(data.labels);
+  //features
 
-   var rootUrl = URI(data.rootUrl);
-   var srGlobalRefParameters = [];
-   var srGlobalParameters = processGlobalParameters(data.parameters, srGlobalRefParameters);
+  var rootUrl = URI(data.rootUrl);
+  var srGlobalRefParameters = [];
+  var srGlobalParameters = processGlobalParameters(data.parameters, srGlobalRefParameters);
 
-   var swagger = {
-     swagger: "2.0",
-     info: {
-       title: data.title,
-       description: data.description,
-       contact: {
-         name: data.ownerName,
-         url: 'https://' + data.ownerDomain,
-       },
-       version: data.version,
-     },
-     host: rootUrl.host(),
-     basePath: "/" + data.servicePath.replace(/^\/|\/$/, ""),
-     schemes: [rootUrl.scheme()],
-     externalDocs: {
-       url: data.documentationLink,
-     },
-     paths: processResource(data, srGlobalRefParameters),
-     definitions: processDefinitions(data.schemas),
-     parameters: srGlobalParameters,
-   };
+  var swagger = {
+    swagger: "2.0",
+    info: {
+      title: data.title,
+      description: data.description,
+      contact: {
+        name: data.ownerName,
+        url: 'https://' + data.ownerDomain,
+      },
+      version: data.version,
+    },
+    host: rootUrl.host(),
+    basePath: "/" + data.servicePath.replace(/^\/|\/$/, ""),
+    schemes: [rootUrl.scheme()],
+    externalDocs: {
+      url: data.documentationLink,
+    },
+    paths: processResource(data, srGlobalRefParameters),
+    definitions: processDefinitions(data.schemas),
+    parameters: srGlobalParameters,
+  };
 
-   //if ("auth" in data) {
-   //  assert("oauth2" in data.auth);
+  //if ("auth" in data) {
+  //  assert("oauth2" in data.auth);
 
-   //  _.extend(swagger, {
-   //    security: {
-   //    },
-   //    securityDefinitions: {
-   //      type: "oauth2",
-   //    }
-   //  });
-   //  var auth = data.auth;
-   //  var srSecurity = {
-   //  };
+  //  _.extend(swagger, {
+  //    security: {
+  //    },
+  //    securityDefinitions: {
+  //      type: "oauth2",
+  //    }
+  //  });
+  //  var auth = data.auth;
+  //  var srSecurity = {
+  //  };
 
-   //  swagger.security = srSecurity;
-   //}
-   validateSwagger(swagger, function (str) {
-     saveSwagger(data.name, data.version, str);
-   });
+  //  swagger.security = srSecurity;
+  //}
+  validateSwagger(swagger, function (str) {
+    saveSwagger(data.name, data.version, str);
+  });
 }
 
 function saveSwagger(name, version, swagger) {
@@ -243,61 +243,61 @@ function convertMime(list) {
 }
 
 function processMethod(method) {
-   var srResponse = {
-     description: "Successful response",
-   };
+  var srResponse = {
+    description: "Successful response",
+  };
 
-   var srMethod = {
-     description: method.description,
-     operationId: method.id,
-     responses: {
-       200 : srResponse
-     },
-   };
+  var srMethod = {
+    description: method.description,
+    operationId: method.id,
+    responses: {
+      200 : srResponse
+    },
+  };
 
-   //TODO: test on youtube example
-   if (method.supportsMediaUpload) {
-     srMethod.consumes = convertMime(method.mediaUpload.accept);
-     //TODO: rest of fields in 'mediaUpload'
-   }
+  //TODO: test on youtube example
+  if (method.supportsMediaUpload) {
+    srMethod.consumes = convertMime(method.mediaUpload.accept);
+    //TODO: rest of fields in 'mediaUpload'
+  }
 
-   //FIXME: https://code.google.com/p/google-api-go-client/issues/detail?id=16
-   //assert(!method.hasOwnProperty('supportsMediaDownload'))
-   //FIXME: supportsSubscription
-   //FIXME: oath
+  //FIXME: https://code.google.com/p/google-api-go-client/issues/detail?id=16
+  //assert(!method.hasOwnProperty('supportsMediaDownload'))
+  //FIXME: supportsSubscription
+  //FIXME: oath
 
-   if ("parameters" in method)
-     srMethod.parameters = processParameterList(method);
+  if ("parameters" in method)
+    srMethod.parameters = processParameterList(method);
 
-   //FIXME:
-   //assert(!("request" in method));
+  //FIXME:
+  //assert(!("request" in method));
 
-   if ("response" in method) {
-     assert("$ref" in method.response);
-     srResponse.schema = {
-       $ref: fixRef(method.response.$ref)
-     };
-   }
+  if ("response" in method) {
+    assert("$ref" in method.response);
+    srResponse.schema = {
+      $ref: fixRef(method.response.$ref)
+    };
+  }
 
-   return srMethod;
+  return srMethod;
 }
 
 function processParameterList(method) {
-   var parameters = method.parameters;
-   var paramOrder = method.paramOreder || [];
+  var parameters = method.parameters;
+  var paramOrder = method.paramOreder || [];
 
-   var srParameters = paramOrder.map(function (name) {
-     return processParameter(name, parameters[name])
-   });
+  var srParameters = paramOrder.map(function (name) {
+    return processParameter(name, parameters[name])
+  });
 
-   for (var name in parameters) {
-     if (paramOrder.indexOf(name) !== -1)
-       continue;
-     var srParam = processParameter(name, parameters[name])
-     srParameters.push(srParam);
-   }
+  for (var name in parameters) {
+    if (paramOrder.indexOf(name) !== -1)
+      continue;
+    var srParam = processParameter(name, parameters[name])
+    srParameters.push(srParam);
+  }
 
-   return srParameters;
+  return srParameters;
 }
 
 function processParameter(name, param) {
