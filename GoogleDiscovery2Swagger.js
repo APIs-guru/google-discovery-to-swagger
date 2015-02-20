@@ -38,10 +38,7 @@ function processList(data,response) {
    assert.equal(data.kind, 'discovery#directoryList')
    assert.equal(data.discoveryVersion, 'v1')
 
-   //FIXME: test without
-   //skip deprecated versions
-   if (data.preferred === false)
-     return;
+   //FIXME: data.preferred
 
    data.items.map(function (api) {
      discovery.get(api.discoveryRestUrl, processAPI);
@@ -55,7 +52,6 @@ function processAPI(data) {
    assert.equal(data.discoveryVersion, 'v1')
    assert.equal(data.protocol, 'rest')
 
-   console.log(data.id);
    if ([
          //missing API description
          "cloudlatencytest:v2",
@@ -76,8 +72,6 @@ function processAPI(data) {
       return;
    }
 
-   console.log("===============================");
-
    //fields that doesn't map to anything:
    //	id
    //	name
@@ -92,8 +86,7 @@ function processAPI(data) {
    //FIXME:
    //console.log(data.labels);
    //features
-   //
-   //FIXME: preferred
+
    var rootUrl = URI(data.rootUrl);
    var srGlobalRefParameters = [];
    var srGlobalParameters = processGlobalParameters(data.parameters, srGlobalRefParameters);
@@ -119,13 +112,6 @@ function processAPI(data) {
      definitions: processDefinitions(data.schemas),
      parameters: srGlobalParameters,
    };
-
-   //assert(!('parameters' in data))
-
-   //console.log("--------------------------------------------");
-   //console.log(data);
-   //assert(!data.hasOwnProperty('methods'), 'test')
-   //console.log(JSON.stringify(data, null, 2));
 
    //if ("auth" in data) {
    //  assert("oauth2" in data.auth);
