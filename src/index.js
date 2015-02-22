@@ -215,6 +215,7 @@ function processParameter(name, param) {
   assert(!('properties' in param));
   assert(!('additionalProperties' in param));
   assert(!('annotations' in param));
+  fixDefault(param);
 
   var srParam = {
     name: name,
@@ -248,4 +249,24 @@ function processParameter(name, param) {
   }
 
   return srParam;
+}
+
+function fixDefault(param) {
+  //Google for some reason encode default values for enums like that
+  //SOME_PREFIX_VALUE
+  //That mean we need convert to lower case and strip prefix.
+  if ('enum' in param && typeof param.default === 'string' &&
+     param.enum.indexOf(param.default) == -1)
+  {
+    var lower = param.default.toLowerCase();
+    var candidate;
+    _.each(param.enum, function (value) {
+      if (lower.slice(-value.length) == value) {
+         assert(candidate === undefined);
+         candidate = value;
+      }
+    });
+    assert(candidate !== undefined);
+    param.default = candidate;
+  }
 }
