@@ -45,10 +45,6 @@ function processAPI(data) {
          'pubsub:v1beta1',
          'pubsub:v1beta1a',
          'pubsub:v1beta2',
-         //FIXME: bug with default value, not matching enum definition
-         'blogger:v3',
-         'youtube:v3',
-         //FIXME
          //circular reference in MapFolder/MapItem
          'mapsengine:exp2',
          'mapsengine:v1',
