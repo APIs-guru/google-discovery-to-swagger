@@ -79,7 +79,7 @@ function validateSwagger(swagger, cb) {
 
     if (validationResults && validationResults.errors && validationResults.errors.length) {
       console.log(JSON.stringify(swagger, null, 2));
-      console.log(validationResults.errors);
+      console.log(JSON.stringify(validationResults.errors, null, 2));
       process.exit(1);
     }
     cb(swagger);

@@ -51,26 +51,35 @@ exports.convert = function (data) {
     paths: processResource(data, srGlobalRefParameters),
     definitions: processDefinitions(data.schemas),
     parameters: srGlobalParameters,
+    securityDefinitions: processAuth(data.auth)
   };
 
-  //if ('auth' in data) {
-  //  assert('oauth2' in data.auth);
-
-  //  _.extend(swagger, {
-  //    security: {
-  //    },
-  //    securityDefinitions: {
-  //      type: 'oauth2',
-  //    }
-  //  });
-  //  var auth = data.auth;
-  //  var srSecurity = {
-  //  };
-
-  //  swagger.security = srSecurity;
-  //}
   removeUndefined(swagger);
   return swagger;
+}
+
+function processAuth(auth) {
+  if (auth === undefined)
+    return undefined;
+
+  //For now Google use only Oauth2.0
+  assert(Object.keys(auth).length == 1);
+  assert(Object.keys(auth)[0] === 'oauth2');
+
+  var scopes = auth.oauth2.scopes;
+  var srScopes = {};
+  for (var name in scopes)
+    srScopes[name] = scopes[name].description;
+
+  return {
+    Oauth2: {
+      type: 'oauth2',
+      description: 'Oauth 2.0 authentication',
+      flow: 'implicit',
+      authorizationUrl: 'https://accounts.google.com/o/oauth2/auth',
+      scopes: srScopes
+    }
+  };
 }
 
 function processGlobalParameters(parameters, srGlobalRefParameters) {
@@ -175,7 +184,6 @@ function processMethod(method) {
   //FIXME: https://code.google.com/p/google-api-go-client/issues/detail?id=16
   //assert(!method.hasOwnProperty('supportsMediaDownload'))
   //FIXME: supportsSubscription
-  //FIXME: oath
 
   if ('parameters' in method)
     srMethod.parameters = processParameterList(method);
@@ -189,6 +197,9 @@ function processMethod(method) {
       $ref: fixRef(method.response.$ref)
     };
   }
+
+  if ('scopes' in method)
+    srMethod.security = [{ Oauth2: method.scopes}];
 
   return srMethod;
 }
