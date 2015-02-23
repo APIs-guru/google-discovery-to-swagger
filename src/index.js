@@ -144,7 +144,7 @@ function convertMime(list) {
   var result = [];
   _.each(list, function (pattern) {
     _.each(mime.glob(pattern), function (name) {
-      //FIXME: workaround for https://github.com/swagger-api/swagger-spec/issues/268
+      //TODO: workaround for https://github.com/swagger-api/swagger-spec/issues/268
       if (name.indexOf('_') >= 0)
         return;
       result.push(name);
@@ -212,7 +212,6 @@ function processParameterList(method) {
 }
 
 function processParameter(name, param) {
-
   assert(!('$ref' in param));
   assert(param.location == 'query' || param.location == 'path');
   assert(['string', 'number', 'integer', 'boolean'].indexOf(param.type) >= 0);

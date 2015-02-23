@@ -71,8 +71,6 @@ function saveSwagger(name, version, swagger) {
 }
 
 function validateSwagger(swagger, cb) {
-  //Trick to get rid of undefined properties
-
   return SrTools.validate(swagger, function (validationError, validationResults) {
     if (validationError) {
       console.log(validationError);
