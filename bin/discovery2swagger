@@ -65,14 +65,13 @@ function saveSwagger(name, version, swagger) {
   path += version + '/';
   mkdirp(path);
   path += 'swagger.json';
-  fs.writeFileSync(path, swagger);
+  var strSwagger = JSON.stringify(swagger, null, 2);
+  fs.writeFileSync(path, strSwagger);
   console.log(path);
 }
 
 function validateSwagger(swagger, cb) {
   //Trick to get rid of undefined properties
-  var strSwagger = JSON.stringify(swagger, null, 2);
-  swagger = JSON.parse(strSwagger);
 
   return SrTools.validate(swagger, function (validationError, validationResults) {
     if (validationError) {
@@ -81,10 +80,10 @@ function validateSwagger(swagger, cb) {
     }
 
     if (validationResults && validationResults.errors && validationResults.errors.length) {
-      console.log(strSwagger);
+      console.log(JSON.stringify(swagger, null, 2));
       console.log(validationResults.errors);
       process.exit(1);
     }
-    cb(strSwagger);
+    cb(swagger);
   });
 }

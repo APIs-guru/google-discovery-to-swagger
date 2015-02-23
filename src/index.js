@@ -4,6 +4,7 @@ var URI = require('URIjs');
 var mime = require('mime-types');
 var api = require('json-schema-compatibility');
 var jp = require('jsonpath');
+var traverse = require('traverse');
 
 exports.convert = function (data) {
   assert.equal(data.discoveryVersion, 'v1')
@@ -66,6 +67,7 @@ exports.convert = function (data) {
 
   //  swagger.security = srSecurity;
   //}
+  removeUndefined(swagger);
   return swagger;
 }
 
@@ -269,4 +271,11 @@ function fixDefault(param) {
     assert(candidate !== undefined);
     param.default = candidate;
   }
+}
+
+function removeUndefined(obj) {
+  traverse(obj).forEach(function (value) {
+    if (value === undefined)
+      this.remove()
+  });
 }
