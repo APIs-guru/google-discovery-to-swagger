@@ -126,26 +126,58 @@ function processDefinitions(schemas) {
   return schemas;
 }
 
-function processResource(resources, srGlobalRefParameters, srPaths) {
-  srPaths = srPaths || {};
-  //Process methods
-  if ('methods' in resources) {
-    for (var key in resources.methods) {
-      var method = resources.methods[key];
-      var srPath = '/' + method.path;
-      var srOperation = method.httpMethod.toLowerCase();
+function processResource(data, srGlobalRefParameters) {
+  var srPaths = processMethodList(data);
 
-      if (!(srPath in srPaths))
-        srPaths[srPath] = { parameters: srGlobalRefParameters };
-      srPaths[srPath][srOperation] = processMethod(method);
+  if ('resources' in data) {
+    for (var name in data.resources) {
+      var srSubPaths = processSubResource(data.resources[name]);
+
+      //Add top-level resource name as tag to all sub-methods.
+      _.each(srSubPaths, function (srPath) {
+        _.each(srPath, function (srOperation) {
+          srOperation.tags = [name];
+        });
+      });
+
+      srPaths = _.merge(srPaths, srSubPaths);
     }
   }
 
-  //Process recursive resources
-  if ('resources' in resources)
-    for (var key in resources.resources)
-      processResource(resources.resources[key], srGlobalRefParameters, srPaths);
+  //Add reference to global parameters
+  _.each(srPaths, function (srPath) {
+    srPath.parameters = srGlobalRefParameters;
+  });
+  return srPaths;
+}
 
+function processMethodList(data) {
+  if (!('methods' in data))
+    return {};
+
+  var srPaths = {};
+  for (var key in data.methods) {
+    var method = data.methods[key];
+    var path = '/' + method.path;
+    var httpMethod = method.httpMethod.toLowerCase();
+
+    if (!(path in srPaths))
+      srPaths[path] = { };
+    srPaths[path][httpMethod] = processMethod(method);
+  }
+  return srPaths;
+}
+
+function processSubResource(data) {
+  var srPaths = processMethodList(data);
+
+  if (!('resources' in data))
+    return srPaths;
+
+  for (var name in data.resources) {
+    var srSubPaths = processSubResource(data.resources[name]);
+    srPaths = _.merge(srPaths, srSubPaths);
+  }
   return srPaths;
 }
 
