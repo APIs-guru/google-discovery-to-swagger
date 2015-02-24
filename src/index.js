@@ -1,6 +1,6 @@
 'use strict';
 
-var assert = require('assert')
+var assert = require('assert');
 var _ = require('lodash');
 var URI = require('URIjs');
 var mime = require('mime-types');
@@ -9,8 +9,8 @@ var jp = require('jsonpath');
 var traverse = require('traverse');
 
 exports.convert = function (data) {
-  assert.equal(data.discoveryVersion, 'v1')
-  assert.equal(data.protocol, 'rest')
+  assert.equal(data.discoveryVersion, 'v1');
+  assert.equal(data.protocol, 'rest');
 
   //fields that doesn't map to anything:
   //	id
@@ -18,14 +18,12 @@ exports.convert = function (data) {
   //	revision
   //	icons
   //	batchPath
+  //	labels
+  //	features
 
   //deprecated:
   //	baseUrl
   //	basePath
-
-  //FIXME:
-  //console.log(data.labels);
-  //features
 
   var rootUrl = URI(data.rootUrl);
   var srGlobalRefParameters = [];
@@ -56,7 +54,7 @@ exports.convert = function (data) {
 
   removeUndefined(swagger);
   return swagger;
-}
+};
 
 function processAuth(auth) {
   if (auth === undefined)
@@ -96,7 +94,7 @@ function fixRef(ref) {
 }
 
 function processDefinitions(schemas) {
-  if (schemas == undefined)
+  if (schemas === undefined)
     return undefined;
 
   schemas = api.v4(schemas);
@@ -130,7 +128,7 @@ function processResource(data, srGlobalRefParameters) {
   var srPaths = processMethodList(data);
 
   if ('resources' in data) {
-    for (var name in data.resources) {
+    _.each(data.resources, function (subResource, name) {
       var srSubPaths = processSubResource(data.resources[name]);
 
       //Add top-level resource name as tag to all sub-methods.
@@ -141,7 +139,7 @@ function processResource(data, srGlobalRefParameters) {
       });
 
       srPaths = _.merge(srPaths, srSubPaths);
-    }
+    });
   }
 
   //Add reference to global parameters
@@ -207,21 +205,18 @@ function processMethod(method) {
     },
   };
 
-  //TODO: test on youtube example
-  if (method.supportsMediaUpload) {
+  //TODO: implement file upload/download
+  //  * rest of fields in 'mediaUpload'
+  //  * 'supportsMediaDownload' https://code.google.com/p/google-api-go-client/issues/detail?id=16
+  if (method.supportsMediaUpload)
     srMethod.consumes = convertMime(method.mediaUpload.accept);
-    //TODO: rest of fields in 'mediaUpload'
-  }
 
-  //FIXME: https://code.google.com/p/google-api-go-client/issues/detail?id=16
-  //assert(!method.hasOwnProperty('supportsMediaDownload'))
-  //FIXME: supportsSubscription
+  //TODO: convert data.supportsSubscription
 
   if ('parameters' in method)
     srMethod.parameters = processParameterList(method);
 
-  //FIXME:
-  //assert(!('request' in method));
+  //TODO: convert data.request
 
   if ('response' in method) {
     assert('$ref' in method.response);
@@ -241,13 +236,13 @@ function processParameterList(method) {
   var paramOrder = method.paramOreder || [];
 
   var srParameters = paramOrder.map(function (name) {
-    return processParameter(name, parameters[name])
+    return processParameter(name, parameters[name]);
   });
 
   for (var name in parameters) {
     if (paramOrder.indexOf(name) !== -1)
       continue;
-    var srParam = processParameter(name, parameters[name])
+    var srParam = processParameter(name, parameters[name]);
     srParameters.push(srParam);
   }
 
@@ -273,11 +268,10 @@ function processParameter(name, param) {
 
   var srType = srParam;
   if (param.repeated === true) {
-    srType = {}
+    srType = {};
     _.extend(srParam, {
       type: 'array',
       items: srType,
-      //FIXME: test
       collectionFormat: ((srParam.in === 'path') ? 'csv' : 'multi')
     });
   }
@@ -289,9 +283,10 @@ function processParameter(name, param) {
     maximum: (param.maximum ? parseInt(param.maximum) : undefined)
   });
 
-  //FIXME: enumDescriptions
+  //TODO: use strings from data.enumDescriptions
+
   if ('format' in param) {
-    //FIXME: convert format.
+    //TODO: convert format.
   }
 
   return srParam;
@@ -320,6 +315,6 @@ function fixDefault(param) {
 function removeUndefined(obj) {
   traverse(obj).forEach(function (value) {
     if (value === undefined)
-      this.remove()
+      this.remove();
   });
 }
