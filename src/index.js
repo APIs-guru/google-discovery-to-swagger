@@ -1,7 +1,7 @@
 'use strict';
 
 var assert = require('assert')
-var _ = require('underscore');
+var _ = require('lodash');
 var URI = require('URIjs');
 var mime = require('mime-types');
 var api = require('json-schema-compatibility');
