@@ -156,8 +156,10 @@ function processMethodList(data) {
   var srPaths = {};
   for (var key in data.methods) {
     var method = data.methods[key];
-    var path = '/' + method.path;
     var httpMethod = method.httpMethod.toLowerCase();
+    var path = method.path;
+    if (path[0] !== '/')
+      path = '/' + path;
 
     if (!(path in srPaths))
       srPaths[path] = { };
