@@ -3,10 +3,10 @@
 
 var assert = require('assert');
 var RestClient = require('node-rest-client').Client;
-var SrTools = require('swagger-tools').specs.v2;
+var srTools = require('swagger-tools').specs.v2;
 var fs = require('fs');
 var mkdirp = require('mkdirp').sync;
-var DiscoveryToSwagger = require('../src/index.js');
+var discoveryToSwagger = require('../src/index.js');
 
 if (!process.argv[2]) {
   console.log('missing directory name');
@@ -52,7 +52,7 @@ function processAPI(data) {
       return;
   }
 
-  var swagger = DiscoveryToSwagger.convert(data);
+  var swagger = discoveryToSwagger.convert(data);
 
   validateSwagger(swagger, function (str) {
     saveSwagger(data.name, data.version, str);
@@ -71,7 +71,7 @@ function saveSwagger(name, version, swagger) {
 }
 
 function validateSwagger(swagger, cb) {
-  return SrTools.validate(swagger, function (validationError, validationResults) {
+  return srTools.validate(swagger, function (validationError, validationResults) {
     if (validationError) {
       console.log(validationError);
       process.exit(1);
