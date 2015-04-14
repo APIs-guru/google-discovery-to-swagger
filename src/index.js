@@ -43,14 +43,14 @@ exports.convert = function (data) {
     host: rootUrl.host(),
     basePath: '/' + data.servicePath.replace(/^\/|\/$/, ''),
     schemes: [rootUrl.scheme()],
-    externalDocs: {
-      url: data.documentationLink,
-    },
     paths: processResource(data, srGlobalRefParameters),
     definitions: processDefinitions(data.schemas),
     parameters: srGlobalParameters,
     securityDefinitions: processAuth(data.auth)
   };
+
+  if (data.documentationLink)
+    swagger.externalDocs = { url: data.documentationLink };
 
   removeUndefined(swagger);
   return swagger;
@@ -187,6 +187,9 @@ function convertMime(list) {
     _.each(mime.glob(pattern), function (name) {
       //TODO: workaround for https://github.com/swagger-api/swagger-spec/issues/268
       if (name.indexOf('_') >= 0)
+        return;
+      //skip duplicates
+      if (result.indexOf(name) !== -1)
         return;
       result.push(name);
     });
