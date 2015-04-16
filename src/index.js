@@ -185,9 +185,6 @@ function convertMime(list) {
   var result = [];
   _.each(list, function (pattern) {
     _.each(mime.glob(pattern), function (name) {
-      //TODO: workaround for https://github.com/swagger-api/swagger-spec/issues/268
-      if (name.indexOf('_') >= 0)
-        return;
       //skip duplicates
       if (result.indexOf(name) !== -1)
         return;
