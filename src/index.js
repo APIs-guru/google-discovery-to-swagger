@@ -93,20 +93,39 @@ function fixRef(ref) {
   return '#/definitions/' + ref;
 }
 
+function applyOnProperty(schema, name, type, cb) {
+  var path = '$..*["' + name + '"]';
+  jp.apply(schema, path , function (value) {
+    if (typeof value !== type)
+      return value;
+    return cb(value);
+  });
+}
+
+
 function processDefinitions(schemas) {
   if (schemas === undefined)
     return undefined;
 
   schemas = api.v4(schemas);
-  jp.apply(schemas, '$..*["$ref"]' , function (value) {
-    //if $ref isn't string it mean that this isn't reference
-    //it something called '$ref', this happens in 'discovery:v1'.
-    if (typeof value !== 'string')
-      return value;
-    return fixRef(value);
+  applyOnProperty(schemas, '$ref', 'string', fixRef);
+
+  //HACK: Swagger doesn't support full JSON Schema
+  applyOnProperty(schemas, 'id', 'string', _.noop);
+  applyOnProperty(schemas, 'enumDescriptions', 'object', function (value) {
+    if (_.isArray(value))
+      return undefined;
+    return value;
+  });
+  applyOnProperty(schemas, 'annotations', 'object', function (value) {
+    var keys = _.keys(value);
+    if (_.isEqual(keys, ['required']) && _.isArray(value.required))
+      return undefined;
+    return value;
   });
 
-  jp.apply(schemas, '$..*.type' , function (value) {
+  //TODO: delete, after PR will be acepted
+  applyOnProperty(schemas, 'type', 'string', function (value) {
     if (value === 'any')
       return undefined;
     return value;
