@@ -1,0 +1,33 @@
+{
+  "name": "google-discovery-to-swagger",
+  "version": "0.0.1",
+  "description": "Script for converting Google Discovery format into Swagger 2.0",
+  "main": "src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/APIs-guru/google-discovery-to-swagger.git"
+  },
+  "keywords": [
+    "API",
+    "REST",
+    "Swagger"
+  ],
+  "author": "Ivan Goncharov <ivan.goncharov.ua@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/APIs-guru/google-discovery-to-swagger/issues"
+  },
+  "bin": {
+    "discovery2swagger": "./bin/discovery2swagger"
+  },
+  "dependencies": {
+    "swagger-tools": "~0.8.5",
+    "node-rest-client": "~1.5.0",
+    "URIjs": "~1.15.0",
+    "mime-db": "~1.8.0",
+    "json-schema-compatibility": "git://github.com/APIs-guru/json-schema-compatibility",
+    "jsonpath": "~0.1.3",
+    "lodash": "~3.6.0",
+    "traverse": "~0.6.6"
+  }
+}
