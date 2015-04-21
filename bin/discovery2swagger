@@ -2,6 +2,7 @@
 'use strict';
 
 var assert = require('assert');
+var _ = require('lodash');
 var RestClient = require('node-rest-client').Client;
 var srTools = require('swagger-tools').specs.v2;
 var fs = require('fs');
@@ -19,14 +20,14 @@ process.chdir(process.argv[2]);
 var discovery = new RestClient();
 discovery.get('https://www.googleapis.com/discovery/v1/apis', processList);
 
-function processList(data,response) {
+function processList(data) {
   data = JSON.parse(data);
   assert.equal(data.kind, 'discovery#directoryList');
   assert.equal(data.discoveryVersion, 'v1');
 
   //FIXME: data.preferred
 
-  data.items.map(function (api) {
+  _.each(data.items, function (api) {
     discovery.get(api.discoveryRestUrl, processAPI);
   });
 }

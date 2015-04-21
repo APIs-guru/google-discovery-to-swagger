@@ -61,7 +61,7 @@ function processAuth(auth) {
     return undefined;
 
   //For now Google use only Oauth2.0
-  assert(Object.keys(auth).length == 1);
+  assert(Object.keys(auth).length === 1);
   assert(Object.keys(auth)[0] === 'oauth2');
 
   var scopes = auth.oauth2.scopes;
@@ -201,11 +201,11 @@ function processSubResource(data) {
 }
 
 function globMime(pattern) {
-  if (pattern == '*/*')
-    return ["application/octet-stream"];
+  if (pattern === '*/*')
+    return ['application/octet-stream'];
 
-  var slashIdx = pattern.indexOf("/");
-  if (slashIdx == -1 || pattern.slice(slashIdx + 1) !== "*")
+  var slashIdx = pattern.indexOf('/');
+  if (slashIdx === -1 || pattern.slice(slashIdx + 1) !== '*')
     return [pattern];
 
   var prefix = pattern.slice(0,slashIdx+1);
@@ -289,11 +289,12 @@ function processParameterList(method) {
 
 function processParameter(name, param) {
   assert(!('$ref' in param));
-  assert(param.location == 'query' || param.location == 'path');
+  assert(param.location === 'query' || param.location === 'path');
   assert(['string', 'number', 'integer', 'boolean'].indexOf(param.type) >= 0);
   assert(!('properties' in param));
   assert(!('additionalProperties' in param));
   assert(!('annotations' in param));
+
   fixDefault(param);
 
   var srParam = {
@@ -304,43 +305,46 @@ function processParameter(name, param) {
     default: param.default
   };
 
-  var srType = srParam;
-  if (param.repeated === true) {
-    srType = {};
+  if (param.repeated) {
     _.extend(srParam, {
       type: 'array',
-      items: srType,
+      items: processType(param),
       collectionFormat: ((srParam.in === 'path') ? 'csv' : 'multi')
     });
   }
-
-  _.extend(srType, {
-    type: param.type,
-    enum: param.enum,
-    minimum: (param.minimum ? parseInt(param.minimum) : undefined),
-    maximum: (param.maximum ? parseInt(param.maximum) : undefined)
-  });
-
-  //TODO: use strings from data.enumDescriptions
-
-  if ('format' in param) {
-    //TODO: convert format.
-  }
+  else
+    _.extend(srParam, processType(param));
 
   return srParam;
 }
+
+function processType(type) {
+  var srType = {
+    type: type.type,
+    enum: type.enum,
+    minimum: (type.minimum ? parseInt(type.minimum) : undefined),
+    maximum: (type.maximum ? parseInt(type.maximum) : undefined)
+  };
+
+  //TODO: convert format.
+  //if ('format' in type) {
+
+  //TODO: use strings from type.enumDescriptions
+  return srType;
+}
+
 
 function fixDefault(param) {
   //Google for some reason encode default values for enums like that
   //SOME_PREFIX_VALUE
   //That mean we need convert to lower case and strip prefix.
   if ('enum' in param && typeof param.default === 'string' &&
-     param.enum.indexOf(param.default) == -1)
+     param.enum.indexOf(param.default) === -1)
   {
     var lower = param.default.toLowerCase();
     var candidate;
     _.each(param.enum, function (value) {
-      if (lower.slice(-value.length) == value) {
+      if (lower.slice(-value.length) === value) {
          assert(candidate === undefined);
          candidate = value;
       }
