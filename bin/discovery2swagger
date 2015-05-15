@@ -53,6 +53,7 @@ function processAPI(data) {
       return;
   }
 
+  console.log('Processing: ' + data.id);
   var swagger = discoveryToSwagger.convert(data);
 
   validateSwagger(swagger, function (str) {
