@@ -4,7 +4,7 @@ var assert = require('assert');
 var _ = require('lodash');
 var URI = require('URIjs');
 var mimeDB = require('mime-db');
-var api = require('json-schema-compatibility');
+var jsonCompat = require('json-schema-compatibility');
 var jp = require('jsonpath');
 var traverse = require('traverse');
 
@@ -107,7 +107,7 @@ function processDefinitions(schemas) {
   if (schemas === undefined)
     return undefined;
 
-  schemas = api.v4(schemas);
+  schemas = jsonCompat.v4(schemas);
   applyOnProperty(schemas, '$ref', 'string', fixRef);
 
   //HACK: Swagger doesn't support full JSON Schema
@@ -349,8 +349,10 @@ function fixDefault(param) {
          candidate = value;
       }
     });
-    assert(candidate !== undefined);
-    param.default = candidate;
+    //If we can't fix default when remove it.
+    delete param.default;
+    if (candidate !== undefined)
+      param.default = candidate;
   }
 }
 
