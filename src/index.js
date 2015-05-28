@@ -8,8 +8,17 @@ var jsonCompat = require('json-schema-compatibility');
 var jp = require('jsonpath');
 var traverse = require('traverse');
 
+exports.checkFormat = function (data) {
+  return !_.isUndefined(data.discoveryVersion);
+};
+
+exports.getVersion = function (data) {
+  return data.discoveryVersion;
+};
+
 exports.convert = function (data) {
-  assert.equal(data.discoveryVersion, 'v1');
+  assert(exports.checkFormat(data));
+  assert(exports.getVersion(data) === 'v1');
   assert.equal(data.protocol, 'rest');
 
   //fields that doesn't map to anything:
