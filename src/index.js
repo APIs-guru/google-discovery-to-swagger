@@ -14,7 +14,6 @@ exports.convert = function (data) {
 
   //fields that doesn't map to anything:
   //	id
-  //	name
   //	revision
   //	icons
   //	batchPath
@@ -33,6 +32,7 @@ exports.convert = function (data) {
     swagger: '2.0',
     info: {
       title: data.title,
+      'x-serviceName': data.name,
       description: data.description,
       contact: {
         name: data.ownerName,
