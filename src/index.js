@@ -280,12 +280,14 @@ function processMethod(method) {
 
 function processParameterList(method) {
   var parameters = method.parameters;
-  var paramOrder = method.paramOreder || [];
+  var paramOrder = method.parameterOrder || [];
 
+  //First push parameters based on 'paramOreder' field
   var srParameters = paramOrder.map(function (name) {
     return processParameter(name, parameters[name]);
   });
 
+  //When process all parameters that doesn't have order
   for (var name in parameters) {
     if (paramOrder.indexOf(name) !== -1)
       continue;
