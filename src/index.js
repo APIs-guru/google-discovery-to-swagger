@@ -73,28 +73,23 @@ function processAuth(auth) {
   assert(Object.keys(auth).length === 1);
   assert(Object.keys(auth)[0] === 'oauth2');
 
-  var scopes = auth.oauth2.scopes;
-  var srScopes = {};
-  for (var name in scopes)
-    srScopes[name] = scopes[name].description;
-
   return {
     Oauth2: {
       type: 'oauth2',
       description: 'Oauth 2.0 authentication',
       flow: 'implicit',
       authorizationUrl: 'https://accounts.google.com/o/oauth2/auth',
-      scopes: srScopes
+      scopes: _.mapValues(auth.oauth2.scopes, 'description')
     }
   };
 }
 
 function processGlobalParameters(parameters, srGlobalRefParameters) {
   var srGlobalParameters = {};
-  for (var name in parameters) {
-    srGlobalParameters[name] = processParameter(name, parameters[name]);
+  _.each(parameters, function (param, name) {
+    srGlobalParameters[name] = processParameter(name, param);
     srGlobalRefParameters.push({$ref: '#/parameters/' + name});
-  }
+  });
   return srGlobalParameters;
 }
 
@@ -202,10 +197,10 @@ function processSubResource(data) {
   if (!('resources' in data))
     return srPaths;
 
-  for (var name in data.resources) {
-    var srSubPaths = processSubResource(data.resources[name]);
+  _.each(data.resources, function (resource, name) {
+    var srSubPaths = processSubResource(resource);
     srPaths = _.merge(srPaths, srSubPaths);
-  }
+  });
   return srPaths;
 }
 
@@ -283,17 +278,15 @@ function processParameterList(method) {
   var paramOrder = method.parameterOrder || [];
 
   //First push parameters based on 'paramOreder' field
-  var srParameters = paramOrder.map(function (name) {
+  var srParameters = _.map(paramOrder, function (name) {
     return processParameter(name, parameters[name]);
   });
 
   //When process all parameters that doesn't have order
-  for (var name in parameters) {
-    if (paramOrder.indexOf(name) !== -1)
-      continue;
-    var srParam = processParameter(name, parameters[name]);
+  _(parameters).omit(paramOrder).each(function (param, name) {
+    var srParam = processParameter(name, param);
     srParameters.push(srParam);
-  }
+  }).value();
 
   return srParameters;
 }
