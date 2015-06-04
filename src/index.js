@@ -255,17 +255,22 @@ function processMethod(method) {
 
   //TODO: convert data.supportsSubscription
 
-  if ('parameters' in method)
-    srMethod.parameters = processParameterList(method);
+  var srParameters = processParameterList(method);
 
-  //TODO: convert data.request
-
-  if ('response' in method) {
-    assert('$ref' in method.response);
-    srResponse.schema = {
-      $ref: fixRef(method.response.$ref)
-    };
+  if ('request' in method) {
+    var request = method.request;
+    srParameters.push({
+      name: request.parameterName || 'body',
+      in: 'body',
+      schema: processSchemaRef(request)
+    });
   }
+
+  if (!_.isEmpty(srParameters))
+    srMethod.parameters = srParameters;
+
+  if ('response' in method)
+    srResponse.schema = processSchemaRef(method.response);
 
   if ('scopes' in method)
     srMethod.security = [{ Oauth2: method.scopes}];
@@ -273,8 +278,15 @@ function processMethod(method) {
   return srMethod;
 }
 
+function processSchemaRef(data) {
+  assert('$ref' in data);
+  return {
+    $ref: fixRef(data.$ref)
+  };
+}
+
 function processParameterList(method) {
-  var parameters = method.parameters;
+  var parameters = method.parameters || [];
   var paramOrder = method.parameterOrder || [];
 
   //First push parameters based on 'paramOreder' field
