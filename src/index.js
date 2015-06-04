@@ -311,14 +311,12 @@ function processParameter(name, param) {
   assert(!('additionalProperties' in param));
   assert(!('annotations' in param));
 
-  fixDefault(param);
-
   var srParam = {
     name: name,
     in: param.location,
     description: param.description,
     required: param.required,
-    default: param.default
+    default: processDefault(param)
   };
 
   if (param.repeated) {
@@ -350,12 +348,25 @@ function processType(type) {
 }
 
 
-function fixDefault(param) {
+function processDefault(param) {
+  if (!('default' in param))
+    return undefined;
+
+  assert(_.isString(param.default));
+  if (param.type !== 'string')
+    param.default = JSON.parse(param.default);
+
+  assert.equal({
+    number: 'number',
+    integer: 'number',
+    boolean: 'boolean',
+    string: 'string'
+  }[param.type], typeof param.default);
+
   //Google for some reason encode default values for enums like that
   //SOME_PREFIX_VALUE
   //That mean we need convert to lower case and strip prefix.
-  if ('enum' in param && typeof param.default === 'string' &&
-     param.enum.indexOf(param.default) === -1)
+  if ('enum' in param && param.enum.indexOf(param.default) === -1)
   {
     var lower = param.default.toLowerCase();
     var candidate;
@@ -365,11 +376,10 @@ function fixDefault(param) {
          candidate = value;
       }
     });
-    //If we can't fix default when remove it.
-    delete param.default;
-    if (candidate !== undefined)
-      param.default = candidate;
+    //If we can't fix default when return undefined and remove it.
+    return candidate;
   }
+  return param.default;
 }
 
 function removeUndefined(obj) {
