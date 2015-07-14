@@ -144,6 +144,17 @@ function processDefinitions(schemas) {
   jp.apply(schemas, '$..*.minimum' , convertInt);
   jp.apply(schemas, '$..*.maximum' , convertInt);
 
+  _.each(schemas, function (schema) {
+    if (!('properties' in schema))
+      return;
+
+    _.each(schema.properties, function (property) {
+      if ('default' in property) {
+        property.default = processDefault(property);
+      }
+    });
+  });
+
   return schemas;
 }
 
