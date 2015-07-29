@@ -128,13 +128,6 @@ function processDefinitions(schemas) {
     return value;
   });
 
-  //TODO: delete, after PR will be acepted
-  applyOnProperty(schemas, 'type', 'string', function (value) {
-    if (value === 'any')
-      return undefined;
-    return value;
-  });
-
   //Google for some reason code minimum/maximum as strings
   function convertInt(value) {
     if (typeof value === 'string')
