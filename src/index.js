@@ -8,6 +8,10 @@ var jsonCompat = require('json-schema-compatibility');
 var jp = require('jsonpath');
 var traverse = require('traverse');
 
+var optionDefaults = {
+  refsToDefinitions: true
+};
+
 exports.checkFormat = function (data) {
   return !_.isUndefined(data.discoveryVersion);
 };
@@ -16,22 +20,33 @@ exports.getVersion = function (data) {
   return data.discoveryVersion;
 };
 
-exports.convert = function (data) {
+/**
+ * Parses the given GDD file, checks format, and converts to Swagger 2.
+ *
+ * @param {string|data} swagger
+ * The file path or URL of a YAML or JSON Swagger file.
+ * Or an already-parsed Swagger API object, which will still be dereferenced and validated.
+ *
+ * @param {options} options
+ * Options to enable/disable certain features. This object will be merged with the {@link optionDefaults} object.
+ */
+exports.convert = function (data, options) {
   assert(exports.checkFormat(data));
   assert(exports.getVersion(data) === 'v1');
   assert.equal(data.protocol, 'rest');
 
+  var opts = _.merge({}, optionDefaults, options);
   //fields that doesn't map to anything:
-  //	id
-  //	revision
-  //	icons
-  //	batchPath
-  //	labels
-  //	features
+  //  id
+  //  revision
+  //  icons
+  //  batchPath
+  //  labels
+  //  features
 
   //deprecated:
-  //	baseUrl
-  //	basePath
+  //  baseUrl
+  //  basePath
 
   var rootUrl = URI(data.rootUrl);
   var srGlobalRefParameters = [];
@@ -52,8 +67,8 @@ exports.convert = function (data) {
     host: rootUrl.host(),
     basePath: '/' + data.servicePath.replace(/^\/|\/$/, ''),
     schemes: [rootUrl.scheme()],
-    paths: processResource(data, srGlobalRefParameters),
-    definitions: processDefinitions(data.schemas),
+    paths: processResource(data, srGlobalRefParameters, opts),
+    definitions: processDefinitions(data.schemas, opts),
     parameters: srGlobalParameters,
     securityDefinitions: processAuth(data.auth)
   };
@@ -93,40 +108,44 @@ function processGlobalParameters(parameters, srGlobalRefParameters) {
   return srGlobalParameters;
 }
 
-function fixRef(ref) {
-  return '#/definitions/' + ref;
+function fixRef(ref, opts) {
+  if (opts.refsToDefinitions) {
+    return '#/definitions/' + ref;
+  } else {
+    return ref;
+  }
 }
 
-function applyOnProperty(schema, name, type, cb) {
+function applyOnProperty(schema, name, type, cb, opts) {
   var path = '$..*["' + name + '"]';
   jp.apply(schema, path , function (value) {
     if (typeof value !== type)
       return value;
-    return cb(value);
+    return cb(value, opts);
   });
 }
 
 
-function processDefinitions(schemas) {
+function processDefinitions(schemas, opts) {
   if (schemas === undefined)
     return undefined;
 
   schemas = jsonCompat.v4(schemas);
-  applyOnProperty(schemas, '$ref', 'string', fixRef);
+  applyOnProperty(schemas, '$ref', 'string', fixRef, opts);
 
   //HACK: Swagger doesn't support full JSON Schema
-  applyOnProperty(schemas, 'id', 'string', _.noop);
-  applyOnProperty(schemas, 'enumDescriptions', 'object', function (value) {
+  applyOnProperty(schemas, 'id', 'string', _.noop, opts);
+  applyOnProperty(schemas, 'enumDescriptions', 'object', function (value, opts) {
     if (_.isArray(value))
       return undefined;
     return value;
-  });
-  applyOnProperty(schemas, 'annotations', 'object', function (value) {
+  }, opts);
+  applyOnProperty(schemas, 'annotations', 'object', function (value, opts) {
     var keys = _.keys(value);
     if (_.isEqual(keys, ['required']) && _.isArray(value.required))
       return undefined;
     return value;
-  });
+  }, opts);
 
   //Google for some reason code minimum/maximum as strings
   function convertInt(value) {
@@ -151,12 +170,12 @@ function processDefinitions(schemas) {
   return schemas;
 }
 
-function processResource(data, srGlobalRefParameters) {
-  var srPaths = processMethodList(data);
+function processResource(data, srGlobalRefParameters, opts) {
+  var srPaths = processMethodList(data, opts);
 
   if ('resources' in data) {
     _.each(data.resources, function (subResource, name) {
-      var srSubPaths = processSubResource(data.resources[name]);
+      var srSubPaths = processSubResource(data.resources[name], opts);
 
       //Add top-level resource name as tag to all sub-methods.
       _.each(srSubPaths, function (srPath) {
@@ -176,7 +195,7 @@ function processResource(data, srGlobalRefParameters) {
   return srPaths;
 }
 
-function processMethodList(data) {
+function processMethodList(data, opts) {
   if (!('methods' in data))
     return {};
 
@@ -190,19 +209,19 @@ function processMethodList(data) {
 
     if (!(path in srPaths))
       srPaths[path] = { };
-    srPaths[path][httpMethod] = processMethod(method);
+    srPaths[path][httpMethod] = processMethod(method, opts);
   }
   return srPaths;
 }
 
-function processSubResource(data) {
-  var srPaths = processMethodList(data);
+function processSubResource(data, opts) {
+  var srPaths = processMethodList(data, opts);
 
   if (!('resources' in data))
     return srPaths;
 
   _.each(data.resources, function (resource, name) {
-    var srSubPaths = processSubResource(resource);
+    var srSubPaths = processSubResource(resource, opts);
     srPaths = _.merge(srPaths, srSubPaths);
   });
   return srPaths;
@@ -238,7 +257,7 @@ function convertMime(list) {
   return result;
 }
 
-function processMethod(method) {
+function processMethod(method, opts) {
   var srResponse = {
     description: 'Successful response',
   };
@@ -266,7 +285,7 @@ function processMethod(method) {
     srParameters.push({
       name: request.parameterName || 'body',
       in: 'body',
-      schema: processSchemaRef(request)
+      schema: processSchemaRef(request, opts)
     });
   }
 
@@ -274,7 +293,7 @@ function processMethod(method) {
     srMethod.parameters = srParameters;
 
   if ('response' in method)
-    srResponse.schema = processSchemaRef(method.response);
+    srResponse.schema = processSchemaRef(method.response, opts);
 
   if ('scopes' in method)
     srMethod.security = [{ Oauth2: method.scopes}];
@@ -282,10 +301,10 @@ function processMethod(method) {
   return srMethod;
 }
 
-function processSchemaRef(data) {
+function processSchemaRef(data, opts) {
   assert('$ref' in data);
   return {
-    $ref: fixRef(data.$ref)
+    $ref: fixRef(data.$ref, opts)
   };
 }
 
