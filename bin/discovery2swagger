@@ -3,6 +3,8 @@
 
 var assert = require('assert');
 var _ = require('lodash');
+var async = require('async')
+var Request = require('request');
 var RestClient = require('node-rest-client').Client;
 var srTools = require('swagger-tools').specs.v2;
 var fs = require('fs');
@@ -17,8 +19,11 @@ if (!process.argv[2]) {
 mkdirp(process.argv[2]);
 process.chdir(process.argv[2]);
 
-var discovery = new RestClient();
-discovery.get('https://www.googleapis.com/discovery/v1/apis', processList);
+new Request('https://www.googleapis.com/discovery/v1/apis', function(err, response, data) {
+  assert(!err);
+  assert(response.statusCode === 200, 'Can not GET API list: ' + response.statusMessage);
+  processList(data);
+});
 
 function processList(data) {
   data = JSON.parse(data);
@@ -26,10 +31,18 @@ function processList(data) {
   assert.equal(data.discoveryVersion, 'v1');
 
   //FIXME: data.preferred
-
-  _.each(data.items, function (api) {
-    discovery.get(api.discoveryRestUrl, processAPI);
+  var apis = async.mapSeries(data.items, function (api, asyncCb) {
+    console.log('Downloading ' + api.discoveryRestUrl + ' ...');
+    new Request(api.discoveryRestUrl, function(err, response, data) {
+      if (err)
+        return asyncCb(err);
+      if (response.statusCode !== 200)
+        return asyncCb(Error('Can not GET ' + url + ': ' + response.statusMessage));
+      asyncCb(null, data);
+    });
   });
+
+  _.each(apis, processAPI);
 }
 
 function processAPI(data) {
@@ -43,9 +56,15 @@ function processAPI(data) {
          //asterisk in path
          'admin:directory_v1',
          //plus in path
+         'pubsub:v1',
          'pubsub:v1beta1',
          'pubsub:v1beta1a',
          'pubsub:v1beta2',
+         'genomics:v1',
+         'appengine:v1beta4',
+         'storagetransfer:v1',
+         'cloudbilling:v1',
+         'proximitybeacon:v1beta1',
          //circular reference in MapFolder/MapItem
          'mapsengine:exp2',
          'mapsengine:v1',
@@ -58,6 +77,7 @@ function processAPI(data) {
 
   validateSwagger(swagger, function (str) {
     saveSwagger(data.name, data.version, str);
+    asyncCb(null);
   });
 }
 
