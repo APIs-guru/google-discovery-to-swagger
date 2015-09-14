@@ -3,7 +3,8 @@
 var assert = require('assert');
 var _ = require('lodash');
 var URI = require('URIjs');
-var mimeDB = require('mime-db');
+var MimeLookup = require('mime-lookup');
+var MIME = new MimeLookup(require('mime-db'));
 var jsonCompat = require('json-schema-compatibility');
 var jp = require('jsonpath');
 var traverse = require('traverse');
@@ -208,27 +209,10 @@ function processSubResource(data) {
   return srPaths;
 }
 
-function globMime(pattern) {
-  if (pattern === '*/*')
-    return ['application/octet-stream'];
-
-  var slashIdx = pattern.indexOf('/');
-  if (slashIdx === -1 || pattern.slice(slashIdx + 1) !== '*')
-    return [pattern];
-
-  var prefix = pattern.slice(0,slashIdx+1);
-  var result = [];
-  _.each(mimeDB, function (dummy, name) {
-    if (name.slice(0, slashIdx+1) === prefix)
-      result.push(name);
-  })
-  return result;
-}
-
 function convertMime(list) {
   var result = [];
   _.each(list, function (pattern) {
-    _.each(globMime(pattern), function (name) {
+    _.each(MIME.glob(pattern), function (name) {
       //skip duplicates
       if (result.indexOf(name) !== -1)
         return;
