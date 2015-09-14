@@ -30,7 +30,7 @@ function processList(data) {
   assert.equal(data.discoveryVersion, 'v1');
 
   //FIXME: data.preferred
-  var apis = async.mapSeries(data.items, function (api, asyncCb) {
+  async.mapSeries(data.items, function (api, asyncCb) {
     console.log('Downloading ' + api.discoveryRestUrl + ' ...');
     new Request(api.discoveryRestUrl, function(err, response, data) {
       if (err)
@@ -39,9 +39,10 @@ function processList(data) {
         return asyncCb(Error('Can not GET ' + url + ': ' + response.statusMessage));
       asyncCb(null, data);
     });
+  }, function (error, apis) {
+    assert(!error);
+    _.each(apis, processAPI);
   });
-
-  _.each(apis, processAPI);
 }
 
 function processAPI(data) {
@@ -76,7 +77,6 @@ function processAPI(data) {
 
   validateSwagger(swagger, function (str) {
     saveSwagger(data.name, data.version, str);
-    asyncCb(null);
   });
 }
 
