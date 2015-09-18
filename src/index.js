@@ -94,7 +94,11 @@ function processGlobalParameters(parameters, srGlobalRefParameters) {
 }
 
 function fixRef(ref) {
-  return '#/definitions/' + ref;
+  if (ref.indexOf('.json') == -1) {
+    return '#/definitions/' + ref;
+  } else {
+    return ref;
+  }
 }
 
 function applyOnProperty(schema, name, type, cb) {
