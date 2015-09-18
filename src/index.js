@@ -17,9 +17,9 @@ exports.getVersion = function (data) {
 };
 
 exports.convert = function (data) {
-  assert(exports.checkFormat(data));
-  assert(exports.getVersion(data) === 'v1');
-  assert.equal(data.protocol, 'rest');
+  assert.ok(exports.checkFormat(data), 'discoveryVersion is undefined');
+  assert.equal(exports.getVersion(data), 'v1', 'GDD version is not \'v1\'');
+  assert.equal(data.protocol, 'rest', 'Protocol is not \'rest\'');
 
   //fields that doesn't map to anything:
   //	id
@@ -70,8 +70,8 @@ function processAuth(auth) {
     return undefined;
 
   //For now Google use only Oauth2.0
-  assert(Object.keys(auth).length === 1);
-  assert(Object.keys(auth)[0] === 'oauth2');
+  assert.equal(Object.keys(auth).length, 1, 'auth section does not exist');
+  assert.equal(Object.keys(auth)[0], 'oauth2', 'auth type not supported');
 
   return {
     Oauth2: {
@@ -287,7 +287,7 @@ function processMethod(method) {
 }
 
 function processSchemaRef(data) {
-  assert('$ref' in data);
+  assert.ok('$ref' in data, 'schema reference does not contain $ref');
   return {
     $ref: fixRef(data.$ref)
   };
@@ -312,12 +312,12 @@ function processParameterList(method) {
 }
 
 function processParameter(name, param) {
-  assert(!('$ref' in param));
-  assert(param.location === 'query' || param.location === 'path');
-  assert(['string', 'number', 'integer', 'boolean'].indexOf(param.type) >= 0);
-  assert(!('properties' in param));
-  assert(!('additionalProperties' in param));
-  assert(!('annotations' in param));
+  assert.ok(!('$ref' in param), 'parameter cannot contain $ref: '+param);
+  assert.ok(['query', 'path'].indexOf(param.location) > -1, 'parameter type must be \'query\' or \'path\'');
+  assert.ok(['string', 'number', 'integer', 'boolean'].indexOf(param.type) >= 0, 'type specified not supported');
+  assert.ok(!('properties' in param), 'parameters cannot contain properties');
+  assert.ok(!('additionalProperties' in param), 'parameters cannot contain additionalProperties');
+  assert.ok(!('annotations' in param), 'properties cannot contain annotations');
 
   var srParam = {
     name: name,
@@ -360,7 +360,7 @@ function processDefault(param) {
   if (!('default' in param))
     return undefined;
 
-  assert(_.isString(param.default));
+  assert.ok(_.isString(param.default), 'default parameter must be a string: '+param);
   if (param.type !== 'string')
     param.default = JSON.parse(param.default);
 
@@ -369,7 +369,7 @@ function processDefault(param) {
     integer: 'number',
     boolean: 'boolean',
     string: 'string'
-  }[param.type], typeof param.default);
+  }[param.type], typeof param.default, 'parameter must be number, boolean, string');
 
   //Google for some reason encode default values for enums like that
   //SOME_PREFIX_VALUE
@@ -380,7 +380,7 @@ function processDefault(param) {
     var candidate;
     _.each(param.enum, function (value) {
       if (lower.slice(-value.length) === value) {
-         assert(candidate === undefined);
+         assert.equal(candidate, undefined, 'unable to derive default');
          candidate = value;
       }
     });
