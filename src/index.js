@@ -88,8 +88,10 @@ function processAuth(auth) {
 function processGlobalParameters(parameters, srGlobalRefParameters) {
   var srGlobalParameters = {};
   _.each(parameters, function (param, name) {
-    srGlobalParameters[name] = processParameter(name, param);
-    srGlobalRefParameters.push({$ref: '#/parameters/' + name});
+    if (parameters.hasOwnProperty(name)) {
+      srGlobalParameters[name] = processParameter(name, param);
+      srGlobalRefParameters.push({$ref: '#/parameters/' + name});
+    }
   });
   return srGlobalParameters;
 }
@@ -187,15 +189,17 @@ function processMethodList(data) {
 
   var srPaths = {};
   for (var key in data.methods) {
-    var method = data.methods[key];
-    var httpMethod = method.httpMethod.toLowerCase();
-    var path = method.path;
-    if (path[0] !== '/')
-      path = '/' + path;
+    if (data.methods.hasOwnProperty(key)) {
+      var method = data.methods[key];
+      var httpMethod = method.httpMethod.toLowerCase();
+      var path = method.path;
+      if (path[0] !== '/')
+        path = '/' + path;
 
-    if (!(path in srPaths))
-      srPaths[path] = { };
-    srPaths[path][httpMethod] = processMethod(method);
+      if (!(path in srPaths))
+        srPaths[path] = { };
+      srPaths[path][httpMethod] = processMethod(method);
+    }
   }
   return srPaths;
 }
@@ -283,13 +287,17 @@ function processParameterList(method) {
 
   //First push parameters based on 'paramOreder' field
   var srParameters = _.map(paramOrder, function (name) {
-    return processParameter(name, parameters[name]);
+    if (parameters.hasOwnProperty(name)) {
+      return processParameter(name, parameters[name]);
+    }
   });
 
   //When process all parameters that doesn't have order
   _(parameters).omit(paramOrder).each(function (param, name) {
-    var srParam = processParameter(name, param);
-    srParameters.push(srParam);
+    if (parameters.hasOwnProperty(name)) {
+      var srParam = processParameter(name, param);
+      srParameters.push(srParam);
+    }
   }).value();
 
   return srParameters;
@@ -297,7 +305,7 @@ function processParameterList(method) {
 
 function processParameter(name, param) {
   assert.ok(!('$ref' in param), 'parameter cannot contain $ref: '+param);
-  assert.ok(['query', 'path'].indexOf(param.location) > -1, 'parameter type must be \'query\' or \'path\'');
+  assert.ok(['query', 'path'].indexOf(param.location) > -1, 'parameter location must be \'query\' or \'path\'');
   assert.ok(['string', 'number', 'integer', 'boolean'].indexOf(param.type) >= 0, 'type specified not supported');
   assert.ok(!('properties' in param), 'parameters cannot contain properties');
   assert.ok(!('additionalProperties' in param), 'parameters cannot contain additionalProperties');
