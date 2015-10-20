@@ -2,7 +2,7 @@
 
 var assert = require('assert');
 var _ = require('lodash');
-var URI = require('URIjs');
+var URI = require('urijs');
 var MimeLookup = require('mime-lookup');
 var MIME = new MimeLookup(require('mime-db'));
 var jsonCompat = require('json-schema-compatibility');
