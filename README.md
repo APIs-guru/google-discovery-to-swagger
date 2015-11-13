@@ -2,8 +2,8 @@
 
 Script for converting Google Discovery format into Swagger 2.0
 
-[![build status](https://secure.travis-ci.org/APIs-guru/google-discovery-to-swagger.svg)](http://travis-ci.org/IvanGoncharov/google-discovery-to-swagger)
-[![dependency status](https://david-dm.org/APIs-guru/google-discovery-to-swagger.svg)](https://david-dm.org/IvanGoncharov/google-discovery-to-swagger)
+[![build status](https://secure.travis-ci.org/APIs-guru/google-discovery-to-swagger.svg)](http://travis-ci.org/APIs-guru/google-discovery-to-swagger)
+[![dependency status](https://david-dm.org/APIs-guru/google-discovery-to-swagger.svg)](https://david-dm.org/APIs-guru/google-discovery-to-swagger)
 [![Code Climate](https://codeclimate.com/github/APIs-guru/google-discovery-to-swagger/badges/gpa.svg)](https://codeclimate.com/github/APIs-guru/google-discovery-to-swagger)
 
 ## Installation
