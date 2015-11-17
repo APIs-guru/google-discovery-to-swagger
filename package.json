@@ -20,9 +20,6 @@
   "bugs": {
     "url": "https://github.com/APIs-guru/google-discovery-to-swagger/issues"
   },
-  "bin": {
-    "discovery2swagger": "./bin/discovery2swagger"
-  },
   "dependencies": {
     "urijs": "~1.17.0",
     "json-schema-compatibility": "^1.1.0",
