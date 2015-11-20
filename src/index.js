@@ -34,7 +34,7 @@ exports.convert = function (data) {
   //	baseUrl
   //	basePath
 
-  var rootUrl = URI(data.rootUrl);
+  var rootUrl = URI(data.rootUrl || '');
   var srGlobalRefParameters = [];
   var srGlobalParameters = processGlobalParameters(data.parameters, srGlobalRefParameters);
 
