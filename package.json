@@ -23,7 +23,7 @@
   "dependencies": {
     "urijs": "~1.17.0",
     "json-schema-compatibility": "^1.1.0",
-    "jsonpath": "~0.2.0",
+    "jsonpath": "~0.2.1",
     "lodash": "~3.10.1",
     "mime-db": "~1.20.0",
     "mime-lookup": "0.0.2",
