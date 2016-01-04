@@ -18,7 +18,8 @@ All Swagger specs are updated, validated and fixed on daily basis.
 
 If you have non-Google API document in this format please consider adding it into collection.
 Just open an [issue](https://github.com/APIs-guru/api-models/issues/new) with link to it.
-If it internal API you can use [api-spec-converter](https://github.com/lucybot/api-spec-converter) tool to do convertion for you.
+
+If it's **internal** API you can use [api-spec-converter](https://github.com/lucybot/api-spec-converter) tool to do convertion for you.
 
 ## Credits
 [Ivan Goncharov](https://github.com/IvanGoncharov/)
