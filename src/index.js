@@ -264,8 +264,11 @@ function processMethod(method) {
   if ('response' in method)
     srResponse.schema = processSchemaRef(method.response);
 
-  if ('scopes' in method)
-    srMethod.security = [{ Oauth2: method.scopes}];
+  srMethod.security = _.map(method.scopes, function (scope) {
+    return {
+      Oauth2: [scope]
+    };
+  });
 
   return srMethod;
 }
