@@ -264,11 +264,13 @@ function processMethod(method) {
   if ('response' in method)
     srResponse.schema = processSchemaRef(method.response);
 
-  srMethod.security = _.map(method.scopes, function (scope) {
-    return {
-      Oauth2: [scope]
-    };
-  });
+  if ('scopes' in method) {
+    srMethod.security = _.map(method.scopes, function (scope) {
+      return {
+        Oauth2: [scope]
+      };
+    });
+  }
 
   return srMethod;
 }
