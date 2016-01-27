@@ -311,15 +311,15 @@ function processParameterList(method) {
 function processParameter(name, param) {
   var supportedTypes = ['string', 'number', 'integer', 'boolean'],
 	errMsg = function errMsg(msg) {
-	  return 'Parameter: ' + name + '.  ' + msg;
+	  return 'There was a problem processing the parameter, ' + name + ', error:  ' + msg;
 	};
  
   assert.ok(!('$ref' in param), errMsg('parameter cannot contain $ref'));
   assert.ok(['query', 'path'].indexOf(param.location) > -1, 
-			errMsg('parameter location must be \'query\' or \'path\', was \'' + param.location + '\''));
+			errMsg('parameter location must be \'query\' or \'path\'; was \'' + param.location + '\'.'));
   assert.ok(supportedTypes.indexOf(param.type) >= 0, 
-			errMsg('parameter type must be one of ' + supportedTypes.join(', ') + 
-				   '.   Was \'' + param.type + '\''));
+			errMsg('parameter type must be one of ' + _.map(supportedTypes, function(t) { return '\'' + t + '\''; }).join(', ') + 
+				   '; was \'' + param.type + '\''));
   assert.ok(!('properties' in param), errMsg('parameters cannot contain properties'));
   assert.ok(!('additionalProperties' in param), errMsg('parameters cannot contain additionalProperties'));
   assert.ok(!('annotations' in param), errMsg('parameters cannot contain annotations'));
