@@ -304,12 +304,20 @@ function processParameterList(method) {
 }
 
 function processParameter(name, param) {
-  assert.ok(!('$ref' in param), 'parameter cannot contain $ref: '+param);
-  assert.ok(['query', 'path'].indexOf(param.location) > -1, 'parameter location must be \'query\' or \'path\'');
-  assert.ok(['string', 'number', 'integer', 'boolean'].indexOf(param.type) >= 0, 'type specified not supported');
-  assert.ok(!('properties' in param), 'parameters cannot contain properties');
-  assert.ok(!('additionalProperties' in param), 'parameters cannot contain additionalProperties');
-  assert.ok(!('annotations' in param), 'properties cannot contain annotations');
+  var supportedTypes = ['string', 'number', 'integer', 'boolean'],
+	errMsg = function errMsg(msg) {
+	  return 'Parameter: ' + name + '.  ' + msg;
+	};
+ 
+  assert.ok(!('$ref' in param), errMsg('parameter cannot contain $ref'));
+  assert.ok(['query', 'path'].indexOf(param.location) > -1, 
+			errMsg('parameter location must be \'query\' or \'path\', was \'' + param.location + '\''));
+  assert.ok(supportedTypes.indexOf(param.type) >= 0, 
+			errMsg('parameter type must be one of ' + supportedTypes.join(', ') + 
+				   '.   Was \'' + param.type + '\''));
+  assert.ok(!('properties' in param), errMsg('parameters cannot contain properties'));
+  assert.ok(!('additionalProperties' in param), errMsg('parameters cannot contain additionalProperties'));
+  assert.ok(!('annotations' in param), errMsg('parameters cannot contain annotations'));
 
   var srParam = {
     name: name,
