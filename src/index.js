@@ -295,7 +295,7 @@ function processParameterList(method) {
   _(parameters).omit(paramOrder).each(function (param, name) {
     var srParam = processParameter(name, param);
     srParameters.push(srParam);
-  }).value();
+  });
 
   return srParameters;
 }
