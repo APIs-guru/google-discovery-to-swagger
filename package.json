@@ -1,6 +1,6 @@
 {
   "name": "google-discovery-to-swagger",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Script for converting Google Discovery format into Swagger 2.0",
   "main": "src/index.js",
   "scripts": {
