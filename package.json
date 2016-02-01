@@ -4,9 +4,9 @@
   "description": "Script for converting Google Discovery format into Swagger 2.0",
   "main": "src/index.js",
   "scripts": {
-    "test": "mocha -R spec -u bdd --recursive test/unit",
-    "ct": "mocha -w -R spec -u bdd --recursive test/unit",
-    "func-test": "test/discovery2swagger $(mktemp -d -t g2s-tmp)"
+    "test": "test/discovery2swagger $(mktemp -d -t g2s-tmp)",
+    "ut": "mocha -R spec -u bdd --recursive test/unit",
+    "ct": "mocha -w -R spec -u bdd --recursive test/unit"
   },
   "repository": {
     "type": "git",
