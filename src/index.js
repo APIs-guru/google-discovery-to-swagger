@@ -38,7 +38,7 @@ exports.convert = function (data) {
   var srGlobalRefParameters = [];
   var srGlobalParameters = processGlobalParameters(data.parameters, srGlobalRefParameters);
 
-  var swagger = {
+  var swagger = _.assign({
     swagger: '2.0',
     info: {
       title: data.title,
@@ -53,11 +53,10 @@ exports.convert = function (data) {
     host: rootUrl.host(),
     basePath: '/' + data.servicePath.replace(/^\/|\/$/, ''),
     schemes: [rootUrl.scheme()],
-    paths: processResource(data, srGlobalRefParameters),
     definitions: processDefinitions(data.schemas),
     parameters: srGlobalParameters,
     securityDefinitions: processAuth(data.auth)
-  };
+  }, processResource(data, srGlobalRefParameters));
 
   if (data.documentationLink)
     swagger.externalDocs = { url: data.documentationLink };
@@ -157,6 +156,7 @@ function processDefinitions(schemas) {
 }
 
 function processResource(data, srGlobalRefParameters) {
+  var srTags = [];
   var srPaths = processMethodList(data);
 
   if ('resources' in data) {
@@ -165,6 +165,9 @@ function processResource(data, srGlobalRefParameters) {
 
       //Add top-level resource name as tag to all sub-methods.
       _.each(srSubPaths, function (srPath) {
+        if (!_.some(srTags, ['name', name]))
+          srTags.push({name: name});
+
         _.each(srPath, function (srOperation) {
           srOperation.tags = [name];
         });
@@ -178,7 +181,7 @@ function processResource(data, srGlobalRefParameters) {
   _.each(srPaths, function (srPath) {
     srPath.parameters = srGlobalRefParameters;
   });
-  return srPaths;
+  return {paths: srPaths, tags: srTags};
 }
 
 function processMethodList(data) {
