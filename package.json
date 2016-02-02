@@ -1,10 +1,12 @@
 {
   "name": "google-discovery-to-swagger",
-  "version": "0.0.8",
+  "version": "1.1.0",
   "description": "Script for converting Google Discovery format into Swagger 2.0",
   "main": "src/index.js",
   "scripts": {
-    "test": "bin/discovery2swagger $(mktemp -d)"
+    "test": "test/discovery2swagger $(mktemp -d -t g2s-tmp)",
+    "ut": "mocha -R spec -u bdd --recursive test/unit",
+    "ct": "mocha -w -R spec -u bdd --recursive test/unit"
   },
   "repository": {
     "type": "git",
@@ -20,20 +22,21 @@
   "bugs": {
     "url": "https://github.com/APIs-guru/google-discovery-to-swagger/issues"
   },
-  "bin": {
-    "discovery2swagger": "./bin/discovery2swagger"
-  },
   "dependencies": {
-    "URIjs": "~1.15.0",
-    "async": "^1.4.2",
+    "urijs": "~1.17.0",
     "json-schema-compatibility": "^1.1.0",
-    "jsonpath": "~0.1.3",
-    "lodash": "~3.6.0",
-    "mime-db": "~1.8.0",
-    "mime-lookup": "0.0.1",
-    "mkdirp": "^0.5.1",
-    "request": "^2.61.0",
-    "swagger-tools": "~0.8.5",
+    "jsonpath": "~0.2.2",
+    "lodash": "~4.1.0",
+    "mime-db": "~1.21.0",
+    "mime-lookup": "0.0.2",
     "traverse": "~0.6.6"
+  },
+  "devDependencies": {
+	"chai": "*",
+	"mocha": "*",
+    "async": "^1.5.2",
+    "mkdirp": "^0.5.1",
+    "request": "^2.69.0",
+    "swagger-tools": "~0.9.11"
   }
 }
