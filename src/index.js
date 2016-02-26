@@ -181,7 +181,7 @@ function processResource(data, srGlobalRefParameters) {
   _.each(srPaths, function (srPath) {
     srPath.parameters = srGlobalRefParameters;
   });
-  return {paths: srPaths, tags: srTags};
+  return {paths: srPaths, tags: _.uniq(srTags)};
 }
 
 function processMethodList(data) {
