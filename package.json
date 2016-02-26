@@ -21,18 +21,18 @@
     "url": "https://github.com/APIs-guru/google-discovery-to-swagger/issues"
   },
   "dependencies": {
-    "urijs": "~1.17.0",
+    "urijs": "^1.17.0",
     "json-schema-compatibility": "^1.1.0",
-    "jsonpath": "~0.2.2",
-    "lodash": "~4.1.0",
-    "mime-db": "~1.21.0",
-    "mime-lookup": "0.0.2",
+    "jsonpath": "^0.2.2",
+    "lodash": "^4.1.0",
+    "mime-db": "^1.21.0",
+    "mime-lookup": "^0.0.2",
     "traverse": "~0.6.6"
   },
   "devDependencies": {
     "async": "^1.5.2",
     "mkdirp": "^0.5.1",
     "request": "^2.69.0",
-    "swagger-tools": "~0.9.11"
+    "swagger-tools": "^0.10.1"
   }
 }
