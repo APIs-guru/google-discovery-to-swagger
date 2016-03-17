@@ -291,7 +291,7 @@ function processParameterList(method) {
 
   //First push parameters based on 'paramOreder' field
   var srParameters = _.map(paramOrder, function (name) {
-    assert.ok(!parameters[name], 'Undefined param used inside \'paramOrder\': ' + name);
+    assert.ok(parameters[name], 'Undefined param used inside \'parameterOrder\': ' + name);
     return processParameter(name, parameters[name]);
   });
 
