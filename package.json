@@ -3,9 +3,6 @@
   "version": "1.1.2",
   "description": "Script for converting Google Discovery format into Swagger 2.0",
   "main": "src/index.js",
-  "scripts": {
-    "test": "test/discovery2swagger $(mktemp -d)"
-  },
   "repository": {
     "type": "git",
     "url": "git://github.com/APIs-guru/google-discovery-to-swagger.git"
@@ -28,11 +25,5 @@
     "mime-db": "^1.21.0",
     "mime-lookup": "^0.0.2",
     "traverse": "~0.6.6"
-  },
-  "devDependencies": {
-    "async": "^1.5.2",
-    "mkdirp": "^0.5.1",
-    "request": "^2.69.0",
-    "swagger-tools": "^0.10.1"
   }
 }
