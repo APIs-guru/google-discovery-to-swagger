@@ -42,7 +42,6 @@ exports.convert = function (data) {
     swagger: '2.0',
     info: {
       title: data.title,
-      'x-serviceName': data.name,
       description: data.description,
       contact: {
         name: data.ownerName,
