@@ -48,6 +48,11 @@ exports.convert = function (data) {
         url: 'https://' + data.ownerDomain,
       },
       version: data.version,
+      license: {
+        name: 'Creative Commons Attribution 3.0',
+	    url: 'http://creativecommons.org/licenses/by/3.0/'
+      },
+      termsOfService: 'https://developers.google.com/terms/'
     },
     host: rootUrl.host(),
     basePath: '/' + data.servicePath.replace(/^\/|\/$/, ''),
@@ -73,11 +78,14 @@ function processAuth(auth) {
   assert.equal(Object.keys(auth)[0], 'oauth2', 'auth type not supported');
 
   return {
+    //TODO: apiKeys - see https://github.com/APIs-guru/openapi-directory/issues/35
     Oauth2: {
       type: 'oauth2',
       description: 'Oauth 2.0 authentication',
       flow: 'implicit',
+	  //TODO: accessCode flow - see https://github.com/APIs-guru/openapi-directory/issues/135
       authorizationUrl: 'https://accounts.google.com/o/oauth2/auth',
+	  //TODO: tokenUrl - see https://github.com/APIs-guru/openapi-directory/pull/116/commits/86cc66063b2a373731d816ea459a508dd27b426c
       scopes: _.mapValues(auth.oauth2.scopes, 'description')
     }
   };
@@ -241,7 +249,7 @@ function processMethod(method) {
     },
   };
 
-  //TODO: implement file upload/download
+  //TODO: implement file upload/download - see https://github.com/APIs-guru/openapi-directory/issues/26
   //  * rest of fields in 'mediaUpload'
   //  * 'supportsMediaDownload' https://code.google.com/p/google-api-go-client/issues/detail?id=16
   if (method.supportsMediaUpload)
