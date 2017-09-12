@@ -37,6 +37,10 @@ exports.convert = function (data) {
   var rootUrl = URI(data.rootUrl || '');
   var srGlobalRefParameters = [];
   var srGlobalParameters = processGlobalParameters(data.parameters, srGlobalRefParameters);
+  var options = {
+    supportsMediaUpload: _.some(jp.query(data.resources, '$..supportsMediaUpload')),
+    basePath: '/' + data.servicePath.replace(/^\/|\/$/, '')
+  };
 
   var swagger = _.assign({
     swagger: '2.0',
@@ -50,17 +54,17 @@ exports.convert = function (data) {
       version: data.version,
       license: {
         name: 'Creative Commons Attribution 3.0',
-	    url: 'http://creativecommons.org/licenses/by/3.0/'
+        url: 'http://creativecommons.org/licenses/by/3.0/'
       },
       termsOfService: 'https://developers.google.com/terms/'
     },
     host: rootUrl.host(),
-    basePath: '/' + data.servicePath.replace(/^\/|\/$/, ''),
+    basePath: (options.supportsMediaUpload ? '' : options.basePath),
     schemes: [rootUrl.scheme()],
     definitions: processDefinitions(data.schemas),
     parameters: srGlobalParameters,
     securityDefinitions: processAuth(data.auth)
-  }, processResource(data, srGlobalRefParameters));
+  }, processResource(data, srGlobalRefParameters, options));
 
   if (data.documentationLink)
     swagger.externalDocs = { url: data.documentationLink };
@@ -162,13 +166,13 @@ function processDefinitions(schemas) {
   return schemas;
 }
 
-function processResource(data, srGlobalRefParameters) {
+function processResource(data, srGlobalRefParameters, options) {
   var srTags = [];
-  var srPaths = processMethodList(data);
+  var srPaths = processMethodList(data, options);
 
   if ('resources' in data) {
     _.each(data.resources, function (subResource, name) {
-      var srSubPaths = processSubResource(data.resources[name]);
+      var srSubPaths = processSubResource(data.resources[name], options);
 
       //Add top-level resource name as tag to all sub-methods.
       _.each(srSubPaths, function (srPath) {
@@ -191,17 +195,22 @@ function processResource(data, srGlobalRefParameters) {
   return {paths: srPaths, tags: _.uniq(srTags)};
 }
 
-function processMethodList(data) {
+function processMethodList(data, options) {
   if (!('methods' in data))
     return {};
 
   var srPaths = {};
   for (var key in data.methods) {
     var method = data.methods[key];
+
     var httpMethod = method.httpMethod.toLowerCase();
     var path = method.path;
+
     if (path[0] !== '/')
       path = '/' + path;
+
+    if (options.supportsMediaUpload)
+      path = options.basePath + path;
 
     // fix broken "complex" paths
     path = path.replaceAll("{+", "{");
@@ -218,14 +227,14 @@ function processMethodList(data) {
   return srPaths;
 }
 
-function processSubResource(data) {
-  var srPaths = processMethodList(data);
+function processSubResource(data, options) {
+  var srPaths = processMethodList(data, options);
 
   if (!('resources' in data))
     return srPaths;
 
   _.each(data.resources, function (resource, name) {
-    var srSubPaths = processSubResource(resource);
+    var srSubPaths = processSubResource(resource, options);
     srPaths = _.merge(srPaths, srSubPaths);
   });
   return srPaths;
