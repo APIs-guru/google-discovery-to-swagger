@@ -340,7 +340,7 @@ function processMediaUpload(method) {
             required: true
           });
           parameters.push({
-            name: 'metatdata',
+            name: 'metadata',
             in: 'body',
             schema: processSchemaRef(request),
             required: true
@@ -352,14 +352,34 @@ function processMediaUpload(method) {
             required: true
           });
         }
+
+        if ('response' in method)
+          response.schema = processSchemaRef(method.response);
+
         break;
+      case 'resumable':
+        if ('request' in method) {
+          var request = method.request;
+          parameters.push({
+            description: 'Upload type. Must be "resumable"',
+            in: 'query',
+            name: 'uploadType',
+            type: 'string',
+            enum: [
+              'resumable'
+            ],
+            required: true
+          });
+          parameters.push({
+            name: request.parameterName || 'body',
+            in: 'body',
+            schema: processSchemaRef(request)
+          });
+        }
     }
 
     if (!_.isEmpty(parameters))
       m.parameters = parameters;
-
-    if ('response' in method)
-      response.schema = processSchemaRef(method.response);
 
     if ('scopes' in method) {
       m.security = _.map(method.scopes, function (scope) {
