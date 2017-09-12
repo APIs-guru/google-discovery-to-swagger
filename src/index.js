@@ -206,6 +206,11 @@ function processMethodList(data) {
     if (!(path in srPaths))
       srPaths[path] = { };
     srPaths[path][httpMethod] = processMethod(method);
+
+    if (method.supportsMediaUpload) {
+      var mediaUploadPaths = processMediaUpload(method);
+      srPaths = _.merge(srPaths, mediaUploadPaths)
+    }
   }
   return srPaths;
 }
@@ -283,6 +288,82 @@ function processMethod(method) {
   }
 
   return srMethod;
+}
+
+function processMediaUpload(method) {
+  var paths = {};
+  var method = method;
+
+  _.each(method.mediaUpload.protocols, function (mediaUploadProtocol, key) {
+    var path = mediaUploadProtocol.path;
+    var response = {
+      description: 'Successful response'
+    };
+    var m = {
+      description: method.description,
+      operationId: method.id + '.' + key,
+      responses: {
+        200 : response
+      }
+    };
+
+    if (mediaUploadProtocol.multipart) {
+      m.consumes = ['multipart/form-data'];
+    }
+
+    var parameters = processParameterList(method);
+
+    switch (key) {
+      case 'simple':
+        if ('request' in method) {
+          var request = method.request;
+          parameters.push({
+            description: 'Upload type. Must be "multipart"',
+            in: 'query',
+            name: 'uploadType',
+            type: 'string',
+            enum: [
+              'multipart'
+            ],
+            required: true
+          });
+          parameters.push({
+            name: 'metatdata',
+            in: 'body',
+            schema: processSchemaRef(request),
+            required: true
+          });
+          parameters.push({
+            name: 'data',
+            in: 'formData',
+            type: 'file',
+            required: true
+          });
+        }
+        break;
+    }
+
+    if (!_.isEmpty(parameters))
+      m.parameters = parameters;
+
+    if ('response' in method)
+      response.schema = processSchemaRef(method.response);
+
+    if ('scopes' in method) {
+      m.security = _.map(method.scopes, function (scope) {
+        return {
+          Oauth2: [scope]
+        };
+      });
+    }
+
+    if (!(path in paths))
+      paths[path] = { };
+
+    paths[path]['post'] = m;
+  });
+
+  return paths;
 }
 
 function processSchemaRef(data) {
