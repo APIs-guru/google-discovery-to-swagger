@@ -203,6 +203,9 @@ function processMethodList(data) {
     if (path[0] !== '/')
       path = '/' + path;
 
+    // fix broken "complex" paths
+    path = path.replaceAll("{+", "{");
+
     if (!(path in srPaths))
       srPaths[path] = { };
     srPaths[path][httpMethod] = processMethod(method);
