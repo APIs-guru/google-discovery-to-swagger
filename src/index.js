@@ -330,9 +330,9 @@ function processMediaUpload(method) {
         if ('request' in method) {
           var request = method.request;
           parameters.push({
-            description: 'Upload type. Must be "multipart"',
-            in: 'query',
+            description: 'Upload type. Must be "multipart".',
             name: 'uploadType',
+            in: 'query',
             type: 'string',
             enum: [
               'multipart'
@@ -340,12 +340,14 @@ function processMediaUpload(method) {
             required: true
           });
           parameters.push({
+            description: request.$ref  + ' metadata.',
             name: 'metadata',
             in: 'body',
             schema: processSchemaRef(request),
             required: true
           });
           parameters.push({
+            description: 'The file to upload.',
             name: 'data',
             in: 'formData',
             type: 'file',
@@ -361,7 +363,7 @@ function processMediaUpload(method) {
         if ('request' in method) {
           var request = method.request;
           parameters.push({
-            description: 'Upload type. Must be "resumable"',
+            description: 'Upload type. Must be "resumable".',
             in: 'query',
             name: 'uploadType',
             type: 'string',
