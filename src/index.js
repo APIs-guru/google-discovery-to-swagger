@@ -37,6 +37,10 @@ exports.convert = function (data) {
   var rootUrl = URI(data.rootUrl || '');
   var srGlobalRefParameters = [];
   var srGlobalParameters = processGlobalParameters(data.parameters, srGlobalRefParameters);
+  var options = {
+    supportsMediaUpload: _.some(jp.query(data.resources, '$..supportsMediaUpload')),
+    basePath: '/' + data.servicePath.replace(/^\/|\/$/, '')
+  };
 
   var swagger = _.assign({
     swagger: '2.0',
@@ -50,17 +54,17 @@ exports.convert = function (data) {
       version: data.version,
       license: {
         name: 'Creative Commons Attribution 3.0',
-	    url: 'http://creativecommons.org/licenses/by/3.0/'
+        url: 'http://creativecommons.org/licenses/by/3.0/'
       },
       termsOfService: 'https://developers.google.com/terms/'
     },
     host: rootUrl.host(),
-    basePath: '/' + data.servicePath.replace(/^\/|\/$/, ''),
+    basePath: (options.supportsMediaUpload ? '' : options.basePath),
     schemes: [rootUrl.scheme()],
     definitions: processDefinitions(data.schemas),
     parameters: srGlobalParameters,
     securityDefinitions: processAuth(data.auth)
-  }, processResource(data, srGlobalRefParameters));
+  }, processResource(data, srGlobalRefParameters, options));
 
   if (data.documentationLink)
     swagger.externalDocs = { url: data.documentationLink };
@@ -162,13 +166,13 @@ function processDefinitions(schemas) {
   return schemas;
 }
 
-function processResource(data, srGlobalRefParameters) {
+function processResource(data, srGlobalRefParameters, options) {
   var srTags = [];
-  var srPaths = processMethodList(data);
+  var srPaths = processMethodList(data, options);
 
   if ('resources' in data) {
     _.each(data.resources, function (subResource, name) {
-      var srSubPaths = processSubResource(data.resources[name]);
+      var srSubPaths = processSubResource(data.resources[name], options);
 
       //Add top-level resource name as tag to all sub-methods.
       _.each(srSubPaths, function (srPath) {
@@ -191,33 +195,28 @@ function processResource(data, srGlobalRefParameters) {
   return {paths: srPaths, tags: _.uniq(srTags)};
 }
 
-function processMethodList(data) {
+function processMethodList(data, options) {
   if (!('methods' in data))
     return {};
 
   var srPaths = {};
   for (var key in data.methods) {
     var method = data.methods[key];
-    var httpMethod = method.httpMethod.toLowerCase();
-    var path = method.path;
-    if (path[0] !== '/')
-      path = '/' + path;
 
-    if (!(path in srPaths))
-      srPaths[path] = { };
-    srPaths[path][httpMethod] = processMethod(method);
+    var paths = processMethod(method, options);
+    srPaths = _.merge(srPaths, paths);
   }
   return srPaths;
 }
 
-function processSubResource(data) {
-  var srPaths = processMethodList(data);
+function processSubResource(data, options) {
+  var srPaths = processMethodList(data, options);
 
   if (!('resources' in data))
     return srPaths;
 
   _.each(data.resources, function (resource, name) {
-    var srSubPaths = processSubResource(resource);
+    var srSubPaths = processSubResource(resource, options);
     srPaths = _.merge(srPaths, srSubPaths);
   });
   return srPaths;
@@ -236,7 +235,20 @@ function convertMime(list) {
   return result;
 }
 
-function processMethod(method) {
+function processMethod(method, options) {
+  var paths = {};
+  var httpMethod = method.httpMethod.toLowerCase();
+  var path = method.path;
+
+  if (path[0] !== '/')
+    path = '/' + path;
+
+  if (options.supportsMediaUpload)
+    path = options.basePath + path;
+
+  // fix broken "complex" paths
+  path = path.replaceAll("{+", "{");
+
   var srResponse = {
     description: 'Successful response',
   };
@@ -248,12 +260,6 @@ function processMethod(method) {
       200 : srResponse
     },
   };
-
-  //TODO: implement file upload/download - see https://github.com/APIs-guru/openapi-directory/issues/26
-  //  * rest of fields in 'mediaUpload'
-  //  * 'supportsMediaDownload' https://code.google.com/p/google-api-go-client/issues/detail?id=16
-  if (method.supportsMediaUpload)
-    srMethod.consumes = convertMime(method.mediaUpload.accept);
 
   //TODO: convert data.supportsSubscription
 
@@ -282,7 +288,108 @@ function processMethod(method) {
     });
   }
 
-  return srMethod;
+  if (!(path in paths))
+    paths[path] = { };
+  paths[path][httpMethod] = srMethod;
+
+  //TODO: implement file upload/download - see https://github.com/APIs-guru/openapi-directory/issues/26
+  //  * 'supportsMediaDownload' https://code.google.com/p/google-api-go-client/issues/detail?id=16
+  if (method.supportsMediaUpload) {
+    srMethod.consumes = convertMime(method.mediaUpload.accept);
+
+    if ('simple' in method.mediaUpload.protocols) {
+      var simple = method.mediaUpload.protocols.simple;
+      var simpleMethod = _.merge({}, srMethod);
+
+      if (simple.multipart) {
+        simpleMethod.consumes = ['multipart/form-data'];
+      }
+
+      var parameters = processParameterList(method);
+
+      parameters.push({
+        description: 'Upload type. Must be "multipart".',
+        name: 'uploadType',
+        in: 'query',
+        type: 'string',
+        enum: [
+          'multipart'
+        ],
+        required: true
+      });
+
+      if ('request' in method) {
+        var request = method.request;
+        parameters.push({
+          description: request.$ref  + ' metadata.',
+          name: 'metadata',
+          in: 'body',
+          schema: processSchemaRef(request),
+          required: true
+        });
+      }
+
+      parameters.push({
+        description: 'The file to upload.',
+        name: 'data',
+        in: 'formData',
+        type: 'file',
+        required: true
+      });
+
+      simpleMethod.parameters = parameters;
+      simpleMethod.operationId = method.id + '.simple';
+
+      path = simple.path;
+      if (!(path in paths))
+        paths[path] = { };
+      paths[path][httpMethod] = simpleMethod;
+    }
+
+    if ('resumable' in method.mediaUpload.protocols) {
+      var resumable = method.mediaUpload.protocols.resumable;
+      var resumableMethod = _.merge({}, srMethod);
+
+      if (resumable.multipart) {
+        resumableMethod.consumes = ['multipart/form-data'];
+      }
+
+      var parameters = processParameterList(method);
+
+      parameters.push({
+        description: 'Upload type. Must be "resumable".',
+        in: 'query',
+        name: 'uploadType',
+        type: 'string',
+        enum: [
+          'resumable'
+        ],
+        required: true
+      });
+
+      if ('request' in method) {
+        var request = method.request;
+        parameters.push({
+          name: request.parameterName || 'body',
+          in: 'body',
+          schema: processSchemaRef(request)
+        });
+      }
+
+      resumableMethod.parameters = parameters;
+      resumableMethod.operationId = method.id + '.resumable';
+
+      // resumable upload doesn't return a schema
+      delete(resumableMethod.responses[200].schema);
+
+      path = resumable.path;
+      if (!(path in paths))
+        paths[path] = { };
+      paths[path][httpMethod] = resumableMethod;
+    }
+  }
+
+  return paths;
 }
 
 function processSchemaRef(data) {
@@ -359,6 +466,10 @@ function processType(type) {
 function processDefault(param) {
   if (!('default' in param))
     return undefined;
+
+  // Sometimes, the default value for a boolean is not a string
+  if (param.type === 'boolean' && !_.isString(param.default))
+    param.default = '' + param.default;
 
   assert.ok(_.isString(param.default), 'default parameter must be a string: '+param);
   if (param.type !== 'string')
