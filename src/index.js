@@ -340,9 +340,6 @@ function processMethod(method, options) {
       simpleMethod.parameters = parameters;
       simpleMethod.operationId = method.id + '.simple';
 
-      if ('response' in simpleMethod)
-        response.schema = processSchemaRef(simpleMethod.response);
-
       path = simple.path;
       if (!(path in paths))
         paths[path] = { };
@@ -381,6 +378,9 @@ function processMethod(method, options) {
 
       resumableMethod.parameters = parameters;
       resumableMethod.operationId = method.id + '.resumable';
+
+      // resumable upload doesn't return a schema
+      delete(resumableMethod.responses[200].schema);
 
       path = resumable.path;
       if (!(path in paths))
