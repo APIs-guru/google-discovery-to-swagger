@@ -81,13 +81,19 @@ function processAuth(auth) {
     //TODO: apiKeys - see https://github.com/APIs-guru/openapi-directory/issues/35
     Oauth2: {
       type: 'oauth2',
-      description: 'Oauth 2.0 authentication',
+      description: 'Oauth 2.0 implicit authentication',
       flow: 'implicit',
-	  //TODO: accessCode flow - see https://github.com/APIs-guru/openapi-directory/issues/135
       authorizationUrl: 'https://accounts.google.com/o/oauth2/auth',
-	  //TODO: tokenUrl - see https://github.com/APIs-guru/openapi-directory/pull/116/commits/86cc66063b2a373731d816ea459a508dd27b426c
       scopes: _.mapValues(auth.oauth2.scopes, 'description')
-    }
+    },
+    Oauth2c: {
+      type: 'oauth2',
+      description: 'Oauth 2.0 accessCode authentication',
+      flow: 'accessCode',
+      authorizationUrl: 'https://accounts.google.com/o/oauth2/auth',
+      tokenUrl: 'https://accounts.google.com/o/oauth2/token',
+      scopes: _.mapValues(auth.oauth2.scopes, 'description')
+	}
   };
 }
 
@@ -277,7 +283,8 @@ function processMethod(method) {
   if ('scopes' in method) {
     srMethod.security = _.map(method.scopes, function (scope) {
       return {
-        Oauth2: [scope]
+        Oauth2: [scope],
+        Oauth2c: [scope]
       };
     });
   }
