@@ -367,6 +367,10 @@ function processDefault(param) {
   if (!('default' in param))
     return undefined;
 
+  // Sometimes, the default value for a boolean is not a string
+  if (param.type === 'boolean' && !_.isString(param.default))
+    param.default = '' + param.default;
+
   assert.ok(_.isString(param.default), 'default parameter must be a string: '+param);
   if (param.type !== 'string')
     param.default = JSON.parse(param.default);
