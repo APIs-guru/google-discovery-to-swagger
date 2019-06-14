@@ -51,12 +51,12 @@ exports.convert = function (data) {
       description: data.description,
       contact: {
         name: data.ownerName,
-        url: 'https://' + data.ownerDomain,
+        url: 'https://' + data.ownerDomain
       },
       version: data.version,
       license: {
         name: 'Creative Commons Attribution 3.0',
-	    url: 'http://creativecommons.org/licenses/by/3.0/'
+        url: 'http://creativecommons.org/licenses/by/3.0/'
       },
       termsOfService: 'https://developers.google.com/terms/'
     },
@@ -259,7 +259,7 @@ function convertMime(list) {
 
 function processMethod(method) {
   let srResponse = {
-    description: 'Successful response',
+    description: 'Successful response'
   };
 
   let srMethod = {
@@ -267,7 +267,7 @@ function processMethod(method) {
     operationId: method.id,
     responses: {
       200 : srResponse
-    },
+    }
   };
 
   //TODO: implement file upload/download - see https://github.com/APIs-guru/openapi-directory/issues/26
