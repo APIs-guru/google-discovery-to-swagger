@@ -10,7 +10,9 @@
   "keywords": [
     "API",
     "REST",
-    "Swagger"
+    "Swagger",
+    "Google",
+    "OpenAPI"
   ],
   "author": "Ivan Goncharov <ivan.goncharov.ua@gmail.com>",
   "license": "MIT",
@@ -19,8 +21,8 @@
   },
   "dependencies": {
     "json-schema-compatibility": "^1.1.0",
-    "jsonpath": "^1.0.0",
-    "lodash": "^4.1.0",
+    "jsonpath": "^1.0.2",
+    "lodash": "^4.17.11",
     "mime-db": "^1.21.0",
     "mime-lookup": "^0.0.2",
     "traverse": "~0.6.6",

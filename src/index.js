@@ -1,13 +1,15 @@
 'use strict';
 
-var assert = require('assert');
-var _ = require('lodash');
-var URI = require('urijs');
-var MimeLookup = require('mime-lookup');
-var MIME = new MimeLookup(require('mime-db'));
-var jsonCompat = require('json-schema-compatibility');
-var jp = require('jsonpath');
-var traverse = require('traverse');
+const assert = require('assert');
+const _ = require('lodash');
+const URI = require('urijs');
+const MimeLookup = require('mime-lookup');
+const MIME = new MimeLookup(require('mime-db'));
+const jsonCompat = require('json-schema-compatibility');
+const jp = require('jsonpath');
+const traverse = require('traverse');
+
+let strict = false;
 
 exports.checkFormat = function (data) {
   return !_.isUndefined(data.discoveryVersion);
@@ -15,6 +17,10 @@ exports.checkFormat = function (data) {
 
 exports.getVersion = function (data) {
   return data.discoveryVersion;
+};
+
+exports.setStrict = function(value) {
+  strict = value;
 };
 
 exports.convert = function (data) {
@@ -34,11 +40,11 @@ exports.convert = function (data) {
   //	baseUrl
   //	basePath
 
-  var rootUrl = URI(data.rootUrl || '');
-  var srGlobalRefParameters = [];
-  var srGlobalParameters = processGlobalParameters(data.parameters, srGlobalRefParameters);
+  let rootUrl = URI(data.rootUrl || '');
+  let srGlobalRefParameters = [];
+  let srGlobalParameters = processGlobalParameters(data.parameters, srGlobalRefParameters);
 
-  var swagger = _.assign({
+  let swagger = _.assign({
     swagger: '2.0',
     info: {
       title: data.title,
@@ -93,12 +99,12 @@ function processAuth(auth) {
       authorizationUrl: 'https://accounts.google.com/o/oauth2/auth',
       tokenUrl: 'https://accounts.google.com/o/oauth2/token',
       scopes: _.mapValues(auth.oauth2.scopes, 'description')
-	}
+    }
   };
 }
 
 function processGlobalParameters(parameters, srGlobalRefParameters) {
-  var srGlobalParameters = {};
+  let srGlobalParameters = {};
   _.each(parameters, function (param, name) {
     srGlobalParameters[name] = processParameter(name, param);
     srGlobalRefParameters.push({$ref: '#/parameters/' + name});
@@ -107,7 +113,7 @@ function processGlobalParameters(parameters, srGlobalRefParameters) {
 }
 
 function fixRef(ref) {
-  if (ref.indexOf('.json') == -1) {
+  if (ref.indexOf('.json') === -1) {
     return '#/definitions/' + ref;
   } else {
     return ref;
@@ -115,14 +121,13 @@ function fixRef(ref) {
 }
 
 function applyOnProperty(schema, name, type, cb) {
-  var path = '$..*["' + name + '"]';
+  let path = '$..*["' + name + '"]';
   jp.apply(schema, path , function (value) {
     if (typeof value !== type)
       return value;
     return cb(value);
   });
 }
-
 
 function processDefinitions(schemas) {
   if (schemas === undefined)
@@ -139,7 +144,7 @@ function processDefinitions(schemas) {
     return value;
   });
   applyOnProperty(schemas, 'annotations', 'object', function (value) {
-    var keys = _.keys(value);
+    let keys = _.keys(value);
     if (_.isEqual(keys, ['required']) && _.isArray(value.required))
       return undefined;
     return value;
@@ -148,7 +153,7 @@ function processDefinitions(schemas) {
   //Google for some reason code minimum/maximum as strings
   function convertInt(value) {
     if (typeof value === 'string')
-      return parseInt(value);
+      return parseInt(value, 10);
     return value;
   }
   jp.apply(schemas, '$..*.minimum' , convertInt);
@@ -169,12 +174,12 @@ function processDefinitions(schemas) {
 }
 
 function processResource(data, srGlobalRefParameters) {
-  var srTags = [];
-  var srPaths = processMethodList(data);
+  let srTags = [];
+  let srPaths = processMethodList(data);
 
   if ('resources' in data) {
     _.each(data.resources, function (subResource, name) {
-      var srSubPaths = processSubResource(data.resources[name]);
+      let srSubPaths = processSubResource(data.resources[name]);
 
       //Add top-level resource name as tag to all sub-methods.
       _.each(srSubPaths, function (srPath) {
@@ -190,9 +195,19 @@ function processResource(data, srGlobalRefParameters) {
     });
   }
 
+  if (strict) {
+    for (let p in srPaths) {
+      let newP = p.split('{+').join('{');
+      if (newP !== p) {
+        srPaths[newP] = srPaths[p];
+        delete srPaths[p];
+      }
+    }
+  }
+
   //Add reference to global parameters
   _.each(srPaths, function (srPath) {
-    srPath.parameters = srGlobalRefParameters;
+    srPath.parameters = _.cloneDeep(srGlobalRefParameters);
   });
   return {paths: srPaths, tags: _.uniq(srTags)};
 }
@@ -201,11 +216,11 @@ function processMethodList(data) {
   if (!('methods' in data))
     return {};
 
-  var srPaths = {};
-  for (var key in data.methods) {
-    var method = data.methods[key];
-    var httpMethod = method.httpMethod.toLowerCase();
-    var path = method.path;
+  let srPaths = {};
+  for (let key in data.methods) {
+    let method = data.methods[key];
+    let httpMethod = method.httpMethod.toLowerCase();
+    let path = method.path;
     if (path[0] !== '/')
       path = '/' + path;
 
@@ -217,20 +232,20 @@ function processMethodList(data) {
 }
 
 function processSubResource(data) {
-  var srPaths = processMethodList(data);
+  let srPaths = processMethodList(data);
 
   if (!('resources' in data))
     return srPaths;
 
   _.each(data.resources, function (resource, name) {
-    var srSubPaths = processSubResource(resource);
+    let srSubPaths = processSubResource(resource);
     srPaths = _.merge(srPaths, srSubPaths);
   });
   return srPaths;
 }
 
 function convertMime(list) {
-  var result = [];
+  let result = [];
   _.each(list, function (pattern) {
     _.each(MIME.glob(pattern), function (name) {
       //skip duplicates
@@ -243,11 +258,11 @@ function convertMime(list) {
 }
 
 function processMethod(method) {
-  var srResponse = {
+  let srResponse = {
     description: 'Successful response',
   };
 
-  var srMethod = {
+  let srMethod = {
     description: method.description,
     operationId: method.id,
     responses: {
@@ -263,16 +278,19 @@ function processMethod(method) {
 
   //TODO: convert data.supportsSubscription
 
-  var srParameters = processParameterList(method);
+  let srParameters = processParameterList(method);
 
   if ('request' in method) {
-    var request = method.request;
-    srParameters.push({
+    let request = method.request;
+    let newParam = {
       name: request.parameterName || 'body',
       in: 'body',
       schema: processSchemaRef(request)
-    });
+    };
+    srParameters = [newParam].concat(srParameters); // seeing some very strange array corruption otherwise
   }
+
+  srParameters = _.uniq(srParameters, function(e) { return e.$ref + '\t' + e.name + '\t' + e.in; });
 
   if (!_.isEmpty(srParameters))
     srMethod.parameters = srParameters;
@@ -300,22 +318,29 @@ function processSchemaRef(data) {
 }
 
 function processParameterList(method) {
-  var parameters = method.parameters || [];
-  var paramOrder = method.parameterOrder || [];
+  let parameters = method.parameters || [];
+  let paramOrder = method.parameterOrder || [];
 
-  //First push parameters based on 'paramOreder' field
-  var srParameters = _.map(paramOrder, function (name) {
+  //First push parameters based on 'paramOrder' field
+  let srParameters = _.map(paramOrder, function (name) {
     assert.ok(parameters[name], 'Undefined param used inside \'parameterOrder\': ' + name);
     return processParameter(name, parameters[name]);
   });
 
-  //When process all parameters that doesn't have order
+  //Then process all parameters that don't have order
+  let srParameters2 = [];
   _(parameters).omit(paramOrder).each(function (param, name) {
-    var srParam = processParameter(name, param);
-    srParameters.push(srParam);
+    let srParam = processParameter(name, param);
+    srParameters2.push(srParam);
   });
 
-  return srParameters;
+  srParameters2.sort(function(a,b){
+    if (a.name < b.name) return -1;
+    if (a.name > b.name) return +1;
+    return 0;
+  });
+
+  return srParameters.concat(srParameters2);
 }
 
 function processParameter(name, param) {
@@ -326,7 +351,7 @@ function processParameter(name, param) {
   assert.ok(!('additionalProperties' in param), 'parameters cannot contain additionalProperties');
   assert.ok(!('annotations' in param), 'properties cannot contain annotations');
 
-  var srParam = {
+  let srParam = {
     name: name,
     in: param.location,
     description: param.description,
@@ -344,15 +369,17 @@ function processParameter(name, param) {
   else
     _.extend(srParam, processType(param));
 
+  assert.ok(!(('schema' in srParam) && ('type' in srParam)), 'output parameter cannot contain schema and type');
+
   return srParam;
 }
 
 function processType(type) {
-  var srType = {
+  let srType = {
     type: type.type,
     enum: type.enum,
-    minimum: (type.minimum ? parseInt(type.minimum) : undefined),
-    maximum: (type.maximum ? parseInt(type.maximum) : undefined)
+    minimum: (type.minimum ? parseInt(type.minimum, 10) : undefined),
+    maximum: (type.maximum ? parseInt(type.maximum, 10) : undefined)
   };
 
   //TODO: convert format.
@@ -361,7 +388,6 @@ function processType(type) {
   //TODO: use strings from type.enumDescriptions
   return srType;
 }
-
 
 function processDefault(param) {
   if (!('default' in param))
@@ -380,11 +406,11 @@ function processDefault(param) {
 
   //Google for some reason encode default values for enums like that
   //SOME_PREFIX_VALUE
-  //That mean we need convert to lower case and strip prefix.
+  //That means we need convert to lower case and strip prefix.
   if ('enum' in param && param.enum.indexOf(param.default) === -1)
   {
-    var lower = param.default.toLowerCase();
-    var candidate;
+    let lower = param.default.toLowerCase();
+    let candidate;
     _.each(param.enum, function (value) {
       if (lower.slice(-value.length) === value) {
          assert.equal(candidate, undefined, 'unable to derive default');
