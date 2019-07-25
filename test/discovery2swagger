@@ -5,11 +5,11 @@ const assert = require('assert');
 const _ = require('lodash');
 const async = require('async')
 const Request = require('request');
-const srTools = require('swagger-tools').specs.v2;
 const fs = require('fs');
 const mkdirp = require('mkdirp').sync;
-const discoveryToSwagger = require('../src/index.js');
-discoveryToSwagger.setStrict(true);
+const discoveryToOpenAPI = require('../src/index.js');
+discoveryToOpenAPI.setStrict(true);
+const validator = require('oas-validator');
 
 if (!process.argv[2]) {
   console.log('missing directory name');
@@ -58,15 +58,15 @@ function processAPI(data) {
          //asterisk in path
          'admin:directory_v1',
          //plus in path
-         'pubsub:v1',
-         'pubsub:v1beta1',
-         'pubsub:v1beta1a',
-         'pubsub:v1beta2',
-         'genomics:v1',
-         'appengine:v1beta4',
-         'storagetransfer:v1',
-         'cloudbilling:v1',
-         'proximitybeacon:v1beta1',
+         //'pubsub:v1',
+         //'pubsub:v1beta1',
+         //'pubsub:v1beta1a',
+         //'pubsub:v1beta2',
+         //'genomics:v1',
+         //'appengine:v1beta4',
+         //'storagetransfer:v1',
+         //'cloudbilling:v1',
+         //'proximitybeacon:v1beta1',
          //circular reference in MapFolder/MapItem
          'mapsengine:exp2',
          'mapsengine:v1',
@@ -75,36 +75,36 @@ function processAPI(data) {
   }
 
   console.log('Processing: ' + data.id);
-  var swagger = discoveryToSwagger.convert(data);
+  var openapi = discoveryToOpenAPI.convert(data);
 
-  validateSwagger(swagger, function (str) {
-    saveSwagger(data.name, data.version, str);
+  validateOpenAPI(openapi, function (str) {
+    saveOpenAPI(data.name, data.version, str);
   });
 }
 
-function saveSwagger(name, version, swagger) {
+function saveOpenAPI(name, version, openapi) {
   var path = name + '/';
   mkdirp(path);
   path += version + '/';
   mkdirp(path);
-  path += 'swagger.json';
-  var strSwagger = JSON.stringify(swagger, null, 2);
-  fs.writeFileSync(path, strSwagger);
+  path += 'openapi.json';
+  var strOpenAPI = JSON.stringify(openapi, null, 2);
+  fs.writeFileSync(path, strOpenAPI);
   console.log(path);
 }
 
-function validateSwagger(swagger, cb) {
-  return srTools.validate(swagger, function (validationError, validationResults) {
-    if (validationError) {
-      console.log(validationError);
-      process.exit(1);
-    }
-
-    if (validationResults && validationResults.errors && validationResults.errors.length) {
-      console.log(JSON.stringify(swagger, null, 2));
+function validateOpenAPI(openapi, cb) {
+  validator.validate(openapi, {})
+  .then(options => {
+    if (!options.valid) {
+      console.log(JSON.stringify(openapi, null, 2));
       console.log(JSON.stringify(validationResults.errors, null, 2));
       process.exit(1);
     }
-    cb(swagger);
+    cb(openapi);
+  })
+  .catch(validationError => {
+      console.log(validationError);
+      process.exit(1);
   });
 }
