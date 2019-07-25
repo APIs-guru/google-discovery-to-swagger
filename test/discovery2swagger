@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 'use strict';
 
-var assert = require('assert');
-var _ = require('lodash');
-var async = require('async')
-var Request = require('request');
-var srTools = require('swagger-tools').specs.v2;
-var fs = require('fs');
-var mkdirp = require('mkdirp').sync;
-var discoveryToSwagger = require('../src/index.js');
+const assert = require('assert');
+const _ = require('lodash');
+const async = require('async')
+const Request = require('request');
+const srTools = require('swagger-tools').specs.v2;
+const fs = require('fs');
+const mkdirp = require('mkdirp').sync;
+const discoveryToSwagger = require('../src/index.js');
+discoveryToSwagger.setStrict(true);
 
 if (!process.argv[2]) {
   console.log('missing directory name');
@@ -36,16 +37,17 @@ function processList(data) {
       if (err)
         return asyncCb(err);
       if (response.statusCode !== 200)
-        return asyncCb(Error('Can not GET ' + url + ': ' + response.statusMessage));
+        return asyncCb(Error('Can not GET ' + api.discoveryRestUrl + ': ' + response.statusMessage));
       asyncCb(null, data);
     });
   }, function (error, apis) {
-    assert(!error);
+    //assert(!error);
     _.each(apis, processAPI);
   });
 }
 
 function processAPI(data) {
+  if (!data) return false;
   data = JSON.parse(data);
   assert.equal(data.kind, 'discovery#restDescription');
 
