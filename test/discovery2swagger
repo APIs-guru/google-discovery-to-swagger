@@ -1,0 +1,108 @@
+#!/usr/bin/env node
+'use strict';
+
+var assert = require('assert');
+var _ = require('lodash');
+var async = require('async')
+var Request = require('request');
+var srTools = require('swagger-tools').specs.v2;
+var fs = require('fs');
+var mkdirp = require('mkdirp').sync;
+var discoveryToSwagger = require('../src/index.js');
+
+if (!process.argv[2]) {
+  console.log('missing directory name');
+  process.exit(1);
+}
+
+mkdirp(process.argv[2]);
+process.chdir(process.argv[2]);
+
+new Request('https://www.googleapis.com/discovery/v1/apis', function(err, response, data) {
+  assert(!err);
+  assert(response.statusCode === 200, 'Can not GET API list: ' + response.statusMessage);
+  processList(data);
+});
+
+function processList(data) {
+  data = JSON.parse(data);
+  assert.equal(data.kind, 'discovery#directoryList');
+  assert.equal(data.discoveryVersion, 'v1');
+
+  //FIXME: data.preferred
+  async.mapSeries(data.items, function (api, asyncCb) {
+    console.log('Downloading ' + api.discoveryRestUrl + ' ...');
+    new Request(api.discoveryRestUrl, function(err, response, data) {
+      if (err)
+        return asyncCb(err);
+      if (response.statusCode !== 200)
+        return asyncCb(Error('Can not GET ' + url + ': ' + response.statusMessage));
+      asyncCb(null, data);
+    });
+  }, function (error, apis) {
+    assert(!error);
+    _.each(apis, processAPI);
+  });
+}
+
+function processAPI(data) {
+  data = JSON.parse(data);
+  assert.equal(data.kind, 'discovery#restDescription');
+
+  //blacklist
+  if ([
+         //missing API description
+         'cloudlatencytest:v2',
+         //asterisk in path
+         'admin:directory_v1',
+         //plus in path
+         'pubsub:v1',
+         'pubsub:v1beta1',
+         'pubsub:v1beta1a',
+         'pubsub:v1beta2',
+         'genomics:v1',
+         'appengine:v1beta4',
+         'storagetransfer:v1',
+         'cloudbilling:v1',
+         'proximitybeacon:v1beta1',
+         //circular reference in MapFolder/MapItem
+         'mapsengine:exp2',
+         'mapsengine:v1',
+       ].indexOf(data.id) >= 0) {
+      return;
+  }
+
+  console.log('Processing: ' + data.id);
+  var swagger = discoveryToSwagger.convert(data);
+
+  validateSwagger(swagger, function (str) {
+    saveSwagger(data.name, data.version, str);
+  });
+}
+
+function saveSwagger(name, version, swagger) {
+  var path = name + '/';
+  mkdirp(path);
+  path += version + '/';
+  mkdirp(path);
+  path += 'swagger.json';
+  var strSwagger = JSON.stringify(swagger, null, 2);
+  fs.writeFileSync(path, strSwagger);
+  console.log(path);
+}
+
+function validateSwagger(swagger, cb) {
+  return srTools.validate(swagger, function (validationError, validationResults) {
+    if (validationError) {
+      console.log(validationError);
+      process.exit(1);
+    }
+
+    if (validationResults && validationResults.errors && validationResults.errors.length) {
+      console.log(JSON.stringify(swagger, null, 2));
+      console.log(JSON.stringify(validationResults.errors, null, 2));
+      process.exit(1);
+    }
+    cb(swagger);
+  });
+}
