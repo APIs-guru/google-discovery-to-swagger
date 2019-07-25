@@ -60,12 +60,14 @@ exports.convert = function (data) {
       },
       termsOfService: 'https://developers.google.com/terms/'
     },
-    host: rootUrl.host(),
-    basePath: '/' + data.servicePath.replace(/^\/|\/$/, ''),
-    schemes: [rootUrl.scheme()],
-    definitions: processDefinitions(data.schemas),
-    parameters: srGlobalParameters,
-    securityDefinitions: processAuth(data.auth)
+    servers: [ {
+      url: rootUrl.scheme()+rootUrl.host()+'/'+data.servicePath.replace(/^\/|\/$/, '')
+    } ],
+    components: {
+      schemas: processDefinitions(data.schemas),
+      parameters: srGlobalParameters,
+      securitySchemes: processAuth(data.auth)
+    }
   }, processResource(data, srGlobalRefParameters));
 
   if (data.documentationLink)
@@ -88,17 +90,23 @@ function processAuth(auth) {
     Oauth2: {
       type: 'oauth2',
       description: 'Oauth 2.0 implicit authentication',
-      flow: 'implicit',
-      authorizationUrl: 'https://accounts.google.com/o/oauth2/auth',
-      scopes: _.mapValues(auth.oauth2.scopes, 'description')
+      flows: {
+        implicit: {
+          authorizationUrl: 'https://accounts.google.com/o/oauth2/auth',
+          scopes: _.mapValues(auth.oauth2.scopes, 'description')
+        }
+      }
     },
     Oauth2c: {
       type: 'oauth2',
-      description: 'Oauth 2.0 accessCode authentication',
-      flow: 'accessCode',
-      authorizationUrl: 'https://accounts.google.com/o/oauth2/auth',
-      tokenUrl: 'https://accounts.google.com/o/oauth2/token',
-      scopes: _.mapValues(auth.oauth2.scopes, 'description')
+      description: 'Oauth 2.0 authorizationCode authentication',
+      flows: {
+        authorizationCode: {
+          authorizationUrl: 'https://accounts.google.com/o/oauth2/auth',
+          tokenUrl: 'https://accounts.google.com/o/oauth2/token',
+          scopes: _.mapValues(auth.oauth2.scopes, 'description')
+        }
+      }
     }
   };
 }
@@ -107,14 +115,14 @@ function processGlobalParameters(parameters, srGlobalRefParameters) {
   let srGlobalParameters = {};
   _.each(parameters, function (param, name) {
     srGlobalParameters[name] = processParameter(name, param);
-    srGlobalRefParameters.push({$ref: '#/parameters/' + name});
+    srGlobalRefParameters.push({$ref: '#/components/parameters/' + name});
   });
   return srGlobalParameters;
 }
 
 function fixRef(ref) {
   if (ref.indexOf('.json') === -1) {
-    return '#/definitions/' + ref;
+    return '#/components/schemas/' + ref;
   } else {
     return ref;
   }
