@@ -45,7 +45,7 @@ exports.convert = function (data) {
   let srGlobalParameters = processGlobalParameters(data.parameters, srGlobalRefParameters);
 
   let swagger = _.assign({
-    swagger: '2.0',
+    openapi: '3.0.0',
     info: {
       title: data.title,
       description: data.description,
