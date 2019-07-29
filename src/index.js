@@ -292,21 +292,17 @@ function processMethod(method) {
   //TODO: implement file upload/download - see https://github.com/APIs-guru/openapi-directory/issues/26
   //  * rest of fields in 'mediaUpload'
   //  * 'supportsMediaDownload' https://code.google.com/p/google-api-go-client/issues/detail?id=16
+  let consumes = 'application/json'; // FIXME?
   if (method.supportsMediaUpload)
-    srMethod.consumes = convertMime(method.mediaUpload.accept);
+    consumes = convertMime(method.mediaUpload.accept);
 
   //TODO: convert data.supportsSubscription
 
   let srParameters = processParameterList(method);
 
   if ('request' in method) {
-    let request = method.request;
-    let newParam = {
-      name: request.parameterName || 'body',
-      in: 'body',
-      schema: processSchemaRef(request)
-    };
-    srParameters = [newParam].concat(srParameters); // seeing some very strange array corruption otherwise
+    srMethod.requestBody = { content: {} };
+    srMethod.requestBody.content[consumes] = { schema: processSchemaRef(method.request) };
   }
 
   srParameters = _.uniq(srParameters, function(e) { return e.$ref + '\t' + e.name + '\t' + e.in; });
@@ -384,8 +380,11 @@ function processParameter(name, param) {
   if (param.repeated) {
     _.extend(srParam.schema, {
       type: 'array',
-      items: processType(param),
-      collectionFormat: ((srParam.in === 'path') ? 'csv' : 'multi') // FIXME
+      items: processType(param)
+    });
+    _.extend(srParam, {
+      style: (srParam.in === 'path') ? 'simple' : 'form',
+      explode: ((srParam.in === 'path') ? false : true)
     });
   }
   else
