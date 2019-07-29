@@ -10,6 +10,7 @@ const jp = require('jsonpath');
 const traverse = require('traverse');
 
 let strict = false;
+let paramMap = {};
 
 exports.checkFormat = function (data) {
   return !_.isUndefined(data.discoveryVersion);
@@ -111,12 +112,21 @@ function processAuth(auth) {
   };
 }
 
+function sanitise(s) {
+    if (paramMap[s]) return paramMap[s];
+    s = s.replace('[]','Array');
+    let components = s.split('/');
+    components[0] = components[0].replace(/[^A-Za-z0-9_\-\.]+|\s+/gm, '_');
+    paramMap[s] = components.join('/');
+    return paramMap[s];
+}
+
 function processGlobalParameters(parameters, srGlobalRefParameters) {
   let srGlobalParameters = {};
   _.each(parameters, function (param, name) {
-    // TODO need to sanitise and remember component names for params
-    srGlobalParameters[name] = processParameter(name, param);
-    srGlobalRefParameters.push({$ref: '#/components/parameters/' + name});
+    let newName = sanitise(name);
+    srGlobalParameters[newName] = processParameter(name, param);
+    srGlobalRefParameters.push({$ref: '#/components/parameters/' + newName});
   });
   return srGlobalParameters;
 }
