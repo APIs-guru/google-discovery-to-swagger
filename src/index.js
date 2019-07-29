@@ -114,6 +114,7 @@ function processAuth(auth) {
 function processGlobalParameters(parameters, srGlobalRefParameters) {
   let srGlobalParameters = {};
   _.each(parameters, function (param, name) {
+    // TODO need to sanitise and remember component names for params
     srGlobalParameters[name] = processParameter(name, param);
     srGlobalRefParameters.push({$ref: '#/components/parameters/' + name});
   });
@@ -303,8 +304,9 @@ function processMethod(method) {
   if (!_.isEmpty(srParameters))
     srMethod.parameters = srParameters;
 
-  if ('response' in method)
-    srResponse.schema = processSchemaRef(method.response);
+  if ('response' in method) {
+    srResponse.content = { 'application/json': { schema: processSchemaRef(method.response) } };
+  }
 
   if ('scopes' in method) {
     srMethod.security = _.map(method.scopes, function (scope) {
@@ -364,18 +366,20 @@ function processParameter(name, param) {
     in: param.location,
     description: param.description,
     required: param.required,
-    default: processDefault(param)
+    schema: {
+      default: processDefault(param)
+    }
   };
 
   if (param.repeated) {
-    _.extend(srParam, {
+    _.extend(srParam.schema, {
       type: 'array',
       items: processType(param),
-      collectionFormat: ((srParam.in === 'path') ? 'csv' : 'multi')
+      collectionFormat: ((srParam.in === 'path') ? 'csv' : 'multi') // FIXME
     });
   }
   else
-    _.extend(srParam, processType(param));
+    _.extend(srParam.schema, processType(param));
 
   assert.ok(!(('schema' in srParam) && ('type' in srParam)), 'output parameter cannot contain schema and type');
 
