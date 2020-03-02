@@ -106,6 +106,9 @@ function processAuth(auth) {
 function processGlobalParameters(parameters, srGlobalRefParameters) {
   let srGlobalParameters = {};
   _.each(parameters, function (param, name) {
+    if (name === "$.xgafv") {
+      return;
+    }
     srGlobalParameters[name] = processParameter(name, param);
     srGlobalRefParameters.push({$ref: '#/parameters/' + name});
   });
@@ -220,13 +223,32 @@ function processMethodList(data) {
   for (let key in data.methods) {
     let method = data.methods[key];
     let httpMethod = method.httpMethod.toLowerCase();
-    let path = method.path;
+    let path = method.flatPath || method.path;
+
+    const pathUri = new URI(path);
+
+    const templatePathParams = pathUri.segment()
+      .map(p => {
+        const removeAfterIndex = p.indexOf(":");
+        if (removeAfterIndex === -1) {
+          return p;
+        }
+
+        return p.substring(0, removeAfterIndex);
+      })
+      .filter(p => {
+        return p.startsWith("{") && p.endsWith("}");
+      })
+      .map(p => {
+        return p.substring(1, p.length - 1);
+      });
+    
     if (path[0] !== '/')
       path = '/' + path;
 
     if (!(path in srPaths))
       srPaths[path] = { };
-    srPaths[path][httpMethod] = processMethod(method);
+    srPaths[path][httpMethod] = processMethod(method, templatePathParams);
   }
   return srPaths;
 }
@@ -257,7 +279,7 @@ function convertMime(list) {
   return result;
 }
 
-function processMethod(method) {
+function processMethod(method, templatePathParams) {
   let srResponse = {
     description: 'Successful response'
   };
@@ -278,7 +300,7 @@ function processMethod(method) {
 
   //TODO: convert data.supportsSubscription
 
-  let srParameters = processParameterList(method);
+  let srParameters = processParameterList(method, templatePathParams);
 
   if ('request' in method) {
     let request = method.request;
@@ -317,9 +339,17 @@ function processSchemaRef(data) {
   };
 }
 
-function processParameterList(method) {
-  let parameters = method.parameters || [];
-  let paramOrder = method.parameterOrder || [];
+function processParameterList(method, templatePathParams) {
+  let parameters = method.parameters || {};
+  let paramOrder = method.parameterOrder || {};
+  
+  parameters = _.pickBy(parameters, (p, name) => {
+    return (p.description && p.description.indexOf("Deprecated. ") == -1) && p.location !== "path";
+  });
+
+  paramOrder = _.filter(paramOrder, (name) => {
+    return parameters[name];
+  });
 
   //First push parameters based on 'paramOrder' field
   let srParameters = _.map(paramOrder, function (name) {
@@ -340,7 +370,22 @@ function processParameterList(method) {
     return 0;
   });
 
-  return srParameters.concat(srParameters2);
+  const allParams =  srParameters.concat(srParameters2);
+  const allParamsName = allParams.map(p => {
+    return p.name;
+  });
+
+  const srParameters3 = _.difference(templatePathParams, allParamsName).map(pathParam => {
+    return {
+      name: pathParam,
+      in: "path",
+      type: "string",
+      // description: param.description,
+      required: true
+    };;
+  });
+
+  return allParams.concat(srParameters3);
 }
 
 function processParameter(name, param) {
