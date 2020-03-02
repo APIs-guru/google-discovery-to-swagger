@@ -20,6 +20,8 @@
     "url": "https://github.com/APIs-guru/google-discovery-to-swagger/issues"
   },
   "dependencies": {
+    "axios": "^0.19.2",
+    "js-yaml": "^3.13.1",
     "json-schema-compatibility": "^1.1.0",
     "jsonpath": "^1.0.2",
     "lodash": "^4.17.15",
