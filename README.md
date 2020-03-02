@@ -2,21 +2,40 @@
 
 Script for converting Google Discovery format into Swagger 2.0
 
-[![Code Climate](https://codeclimate.com/github/APIs-guru/google-discovery-to-swagger/badges/gpa.svg)](https://codeclimate.com/github/APIs-guru/google-discovery-to-swagger)
-
 ## Usage
 
-If you need to convert some APIs from Google Discovery service I have good news for you, it is already [done](https://github.com/APIs-guru/openapi-directory/tree/master/APIs/googleapis.com) :smile:
+```
+$ npm install
+$ node src/main.js [SERVICE_NAME] [VERSION] > file.yml
+```
 
-I've developed this lib as part of my main project: [APIs.guru](https://github.com/APIs-guru/api-models) - Wikipedia for Web APIs.
-  
-**IMPORTANT**: don't use Github RAW links because they are subject to change.
-Instead you can find direct links for any particular API in [this list](https://apis-guru.github.io/api-models/).
-All OpenAPI documents are updated, validated and fixed on a weekly basis.
+The script will automatically try to use the following urls to get the API discovery file:
+```
+https://${service}.googleapis.com/$discovery/rest?version=${version}
+https://www.googleapis.com/discovery/v1/apis/${service}/${version}/rest
+```
 
-If you have non-Google API document in this format please consider adding it to the collection: just open an [issue](https://github.com/APIs-guru/api-models/issues/new) with link to it.
+If `VERSION` is not specified the script will try versions 1-5.
 
-If it is an **internal** API you can use [api-spec-converter](https://github.com/lucybot/api-spec-converter) tool to do conversion for you.
+Examples:
+```
+node src/main.js clouddebugger > raw_gcp_stackdriver_debugger.yml
+node src/main.js container > raw_gcp_container_engine.yml
+node src/main.js vision > raw_gcp_cloud_vision.yml
+node src/main.js logging > raw_gcp_stackdriver_logging.yml
+node src/main.js monitoring > raw_gcp_stackdriver_monitoring.yml
+node src/main.js compute > raw_gcp_compute_engine.yml
+node src/main.js datastore > raw_gcp_cloud_datastore.yml
+node src/main.js cloudprofiler > raw_gcp_stackdriver_profiler.yml
+node src/main.js cloudtrace > raw_gcp_stackdriver_trace.yml
+node src/main.js language > raw_gcp_cloud_natural_language.yml
+node src/main.js pubsub > raw_gcp_cloud_pubsub.yml
+node src/main.js bigquery > raw_gcp_bigquery.yml
+node src/main.js storage > raw_gcp_cloud_storage.yml 
+node src/main.js clouderrorreporting v1beta1 > raw_gcp_stackdriver_errors.yml
+```
+
+You can see in the last example we have to specify the version because it's not just a number.
 
 ## Credits
 [Ivan Goncharov](https://github.com/IvanGoncharov/)
