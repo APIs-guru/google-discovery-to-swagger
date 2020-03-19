@@ -356,7 +356,8 @@ function processParameterList(method) {
     return 0;
   });
 
-  return srParameters.concat(srParameters2);
+  let allParameters = srParameters.concat(srParameters2);
+  return [...new Set(allParameters)]; // deduplicate
 }
 
 function processParameter(name, param) {
