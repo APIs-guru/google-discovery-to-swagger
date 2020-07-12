@@ -9,7 +9,7 @@ const jsonCompat = require('json-schema-compatibility');
 const jp = require('jsonpath');
 const traverse = require('traverse');
 
-let strict = false;
+let strict = true;
 let paramMap = {};
 
 exports.checkFormat = function (data) {
@@ -62,7 +62,7 @@ exports.convert = function (data) {
       termsOfService: 'https://developers.google.com/terms/'
     },
     servers: [ {
-      url: rootUrl.scheme()+rootUrl.host()+'/'+data.servicePath.replace(/^\/|\/$/, '')
+      url: rootUrl.scheme()+'://'+rootUrl.host()+'/'+data.servicePath.replace(/^\/|\/$/, '')
     } ],
     components: {
       schemas: processDefinitions(data.schemas),
@@ -179,17 +179,27 @@ function processDefinitions(schemas) {
   jp.apply(schemas, '$..*.maximum' , convertInt);
 
   _.each(schemas, function (schema) {
-    if (!('properties' in schema))
-      return;
-
-    _.each(schema.properties, function (property) {
-      if ('default' in property) {
-        property.default = processDefault(property);
+    traverse(schema).forEach(function (value) {
+      if ((typeof value === 'object') && ('default' in value)) {
+        if ((value.type === 'boolean') && (typeof value.default === 'string')) {
+          value.default = (value.default === 'true');
+        }
+        else if ((value.type === 'integer') && (typeof value.default === 'string')) {
+          value.default = parseInt(value.default, 10);
+        }
+        value.default = processDefault(value);
       }
     });
   });
 
   return schemas;
+}
+
+function pcomp(e1,e2) {
+  function id(e) {
+    return (e.$ref+'\t'+e.name+'\t'+e.in);
+  }
+  return (id(e1) === id(e2));
 }
 
 function processResource(data, srGlobalRefParameters) {
@@ -226,7 +236,7 @@ function processResource(data, srGlobalRefParameters) {
 
   //Add reference to global parameters
   _.each(srPaths, function (srPath) {
-    srPath.parameters = _.cloneDeep(srGlobalRefParameters);
+    srPath.parameters = _.uniqWith(_.cloneDeep(srGlobalRefParameters),pcomp);
   });
   return {paths: srPaths, tags: _.uniq(srTags)};
 }
@@ -305,7 +315,7 @@ function processMethod(method) {
     srMethod.requestBody.content[consumes] = { schema: processSchemaRef(method.request) };
   }
 
-  srParameters = _.uniq(srParameters, function(e) { return e.$ref + '\t' + e.name + '\t' + e.in; });
+  srParameters = _.uniqWith(srParameters, pcomp);
 
   if (!_.isEmpty(srParameters))
     srMethod.parameters = srParameters;
@@ -356,8 +366,9 @@ function processParameterList(method) {
     return 0;
   });
 
-  let allParameters = srParameters.concat(srParameters2);
-  return [...new Set(allParameters)]; // deduplicate
+  let allParameters = srParameters;
+  if (srParameters2.length) allParameters = srParameters.concat(srParameters2);
+  return _.uniqWith(allParameters, pcomp);
 }
 
 function processParameter(name, param) {
@@ -374,7 +385,6 @@ function processParameter(name, param) {
     description: param.description,
     required: param.required,
     schema: {
-      default: processDefault(param)
     }
   };
 
@@ -390,6 +400,8 @@ function processParameter(name, param) {
   }
   else
     _.extend(srParam.schema, processType(param));
+
+  _.extend(srParam.schema, { default: processDefault(srParam.schema) });
 
   assert.ok(!(('schema' in srParam) && ('type' in srParam)), 'output parameter cannot contain schema and type');
 
@@ -414,17 +426,20 @@ function processType(type) {
 function processDefault(param) {
   if (!('default' in param))
     return undefined;
+  if (typeof param.type === 'object')
+    return undefined;
 
-  assert.ok(_.isString(param.default), 'default parameter must be a string: '+param);
-  if (param.type !== 'string')
-    param.default = JSON.parse(param.default);
+  //assert.ok(_.isString(param.default), 'default parameter must be a string: '+param);
+  //if (param.type !== 'string')
+  //  param.default = JSON.parse(param.default);
 
   assert.equal({
     number: 'number',
     integer: 'number',
     boolean: 'boolean',
-    string: 'string'
-  }[param.type], typeof param.default, 'parameter must be number, boolean, string');
+    string: 'string',
+    object: 'object'
+  }[param.type], typeof param.default, `default mismatch. ${param.type} and ${typeof param.default}`);
 
   //Google for some reason encode default values for enums like that
   //SOME_PREFIX_VALUE

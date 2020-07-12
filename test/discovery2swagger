@@ -3,13 +3,19 @@
 
 const assert = require('assert');
 const _ = require('lodash');
-const async = require('async')
-const Request = require('request');
 const fs = require('fs');
 const mkdirp = require('mkdirp').sync;
 const discoveryToOpenAPI = require('../src/index.js');
 discoveryToOpenAPI.setStrict(true);
 const validator = require('oas-validator');
+const fetch = require('node-fetch');
+
+async function main() {
+  const response = await fetch('https://www.googleapis.com/discovery/v1/apis');
+  const data = await response.text();
+  assert(response.ok, 'Can not GET API list: ' + response.statusMessage);
+  await processList(data);
+}
 
 if (!process.argv[2]) {
   console.log('missing directory name');
@@ -19,59 +25,69 @@ if (!process.argv[2]) {
 mkdirp(process.argv[2]);
 process.chdir(process.argv[2]);
 
-new Request('https://www.googleapis.com/discovery/v1/apis', function(err, response, data) {
-  assert(!err);
-  assert(response.statusCode === 200, 'Can not GET API list: ' + response.statusMessage);
-  processList(data);
-});
+main();
 
-function processList(data) {
-  data = JSON.parse(data);
+async function processList(data) {
+  try {
+    data = JSON.parse(data);
+  }
+  catch (ex) {
+    console.warn(ex.message);
+    data = {};
+  }
   assert.equal(data.kind, 'discovery#directoryList');
   assert.equal(data.discoveryVersion, 'v1');
 
-  //FIXME: data.preferred
-  async.mapSeries(data.items, function (api, asyncCb) {
+  console.log('APIs',data.items.length);
+
+  for (let api of data.items) {
+    //FIXME: data.preferred
     console.log('Downloading ' + api.discoveryRestUrl + ' ...');
-    new Request(api.discoveryRestUrl, function(err, response, data) {
-      if (err)
-        return asyncCb(err);
-      if (response.statusCode !== 200)
-        return asyncCb(Error('Can not GET ' + api.discoveryRestUrl + ': ' + response.statusMessage));
-      asyncCb(null, data);
-    });
-  }, function (error, apis) {
-    //assert(!error);
-    _.each(apis, processAPI);
-  });
+    const response = await fetch(api.discoveryRestUrl);
+    const data = await response.text();
+    if (response.ok) {
+      processAPI(data);
+    }
+    else {
+      console.warn('Can not GET ' + api.discoveryRestUrl + ': ' + response.statusMessage);
+    }
+  }
 }
 
 function processAPI(data) {
-  if (!data) return false;
-  data = JSON.parse(data);
+  if (!data) return true;
+  try {
+    data = JSON.parse(data);
+  }
+  catch (ex) {
+    console.warn(ex.message);
+    return true;
+  }
   assert.equal(data.kind, 'discovery#restDescription');
 
-  //blacklist
+  //blocklist
   if ([
          //missing API description
          'cloudlatencytest:v2',
          //asterisk in path
          'admin:directory_v1',
-         //plus in path
-         //'pubsub:v1',
-         //'pubsub:v1beta1',
-         //'pubsub:v1beta1a',
-         //'pubsub:v1beta2',
-         //'genomics:v1',
-         //'appengine:v1beta4',
-         //'storagetransfer:v1',
-         //'cloudbilling:v1',
-         //'proximitybeacon:v1beta1',
+         //Identical path templates
+         'appengine:v1',
+         'appengine:v1beta',
+         'apigee:v1',
+         'bigqueryreservation:v1alpha2',
+         'cloudfunctions:v1',
+         'containeranalysis:v1alpha1',
+         'pubsub:v1beta2',
+         'clouderrorreporting:v1beta1',
+         'containeranalysis:v1beta1',
+         'storagetransfer:v1',
+         'streetviewpublish:v1',
          //circular reference in MapFolder/MapItem
          'mapsengine:exp2',
          'mapsengine:v1',
        ].indexOf(data.id) >= 0) {
-      return;
+      return true;
   }
 
   console.log('Processing: ' + data.id);
@@ -80,31 +96,39 @@ function processAPI(data) {
   validateOpenAPI(openapi, function (str) {
     saveOpenAPI(data.name, data.version, str);
   });
+  return true;
 }
 
 function saveOpenAPI(name, version, openapi) {
   var path = name + '/';
-  mkdirp(path);
+  //mkdirp(path);
   path += version + '/';
   mkdirp(path);
   path += 'openapi.json';
   var strOpenAPI = JSON.stringify(openapi, null, 2);
-  fs.writeFileSync(path, strOpenAPI);
-  console.log(path);
+  fs.writeFileSync(path, strOpenAPI, 'utf8');
+  //console.log(path);
 }
 
 function validateOpenAPI(openapi, cb) {
-  validator.validate(openapi, {})
+  const options = {};
+  validator.validate(openapi, options)
   .then(options => {
     if (!options.valid) {
       console.log(JSON.stringify(openapi, null, 2));
-      console.log(JSON.stringify(validationResults.errors, null, 2));
+      console.warn(JSON.stringify(validationResults.errors, null, 2));
+      console.warn('Exiting with 1');
       process.exit(1);
     }
     cb(openapi);
   })
   .catch(validationError => {
-      console.log(validationError);
+      cb(openapi);
+      console.warn(validationError.message);
+      if (options && options.context) {
+        console.warn(options.context.pop());
+      }
+      console.warn('Exiting with 1');
       process.exit(1);
   });
 }
