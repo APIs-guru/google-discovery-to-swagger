@@ -1,3 +1,4 @@
+//@ts-check
 'use strict';
 
 const assert = require('assert');
@@ -345,7 +346,7 @@ function processSchemaRef(data) {
 
 function processParameterList(method) {
   let parameters = method.parameters || [];
-  let paramOrder = method.parameterOrder || [];
+  let paramOrder = _.uniq(method.parameterOrder || []);
 
   //First push parameters based on 'paramOrder' field
   let srParameters = _.map(paramOrder, function (name) {
@@ -356,18 +357,17 @@ function processParameterList(method) {
   //Then process all parameters that don't have order
   let srParameters2 = [];
   _(parameters).omit(paramOrder).each(function (param, name) {
-    let srParam = processParameter(name, param);
+    const srParam = processParameter(name, param);
     srParameters2.push(srParam);
   });
 
-  srParameters2.sort(function(a,b){
+  srParameters2 = srParameters2.sort(function(a,b){
     if (a.name < b.name) return -1;
     if (a.name > b.name) return +1;
     return 0;
   });
 
-  let allParameters = srParameters;
-  if (srParameters2.length) allParameters = srParameters.concat(srParameters2);
+  let allParameters = srParameters.concat(srParameters2);
   return _.uniqWith(allParameters, pcomp);
 }
 
@@ -426,7 +426,7 @@ function processType(type) {
 function processDefault(param) {
   if (!('default' in param))
     return undefined;
-  if (typeof param.type === 'object')
+  if ((typeof param.type === 'object') || (typeof param.type === 'undefined'))
     return undefined;
 
   //assert.ok(_.isString(param.default), 'default parameter must be a string: '+param);
@@ -464,5 +464,8 @@ function removeUndefined(obj) {
   traverse(obj).forEach(function (value) {
     if (value === undefined)
       this.remove();
+    if ((this.key === 'parameters') && (Array.isArray(value))) {
+      this.update(_.uniqWith(value,pcomp));
+    }
   });
 }

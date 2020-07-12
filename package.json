@@ -32,7 +32,6 @@
     "urijs": "^1.19.2"
   },
   "devDependencies": {
-    "async": "^3.2.0",
     "mkdirp": "^0.5.5",
     "node-fetch": "^2.6.0",
     "oas-validator": "^4.0.5"

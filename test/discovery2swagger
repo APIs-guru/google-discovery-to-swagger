@@ -83,6 +83,14 @@ function processAPI(data) {
          'containeranalysis:v1beta1',
          'storagetransfer:v1',
          'streetviewpublish:v1',
+         'pubsub:v1',
+         'servicenetworking:v1beta',
+         'spanner:v1',
+         'vision:v1',
+         'sourcerepo:v1',
+         'logging:v2',
+         'healthcare:v1',
+         'healthcare:v1beta1',
          //circular reference in MapFolder/MapItem
          'mapsengine:exp2',
          'mapsengine:v1',
@@ -93,21 +101,20 @@ function processAPI(data) {
   console.log('Processing: ' + data.id);
   var openapi = discoveryToOpenAPI.convert(data);
 
-  validateOpenAPI(openapi, function (str) {
-    saveOpenAPI(data.name, data.version, str);
+  validateOpenAPI(openapi, function (err, obj) {
+    saveOpenAPI(data.name, data.version, obj, err);
   });
   return true;
 }
 
-function saveOpenAPI(name, version, openapi) {
+function saveOpenAPI(name, version, openapi, err) {
   var path = name + '/';
-  //mkdirp(path);
   path += version + '/';
   mkdirp(path);
+  if (err) path += 'err_';
   path += 'openapi.json';
   var strOpenAPI = JSON.stringify(openapi, null, 2);
   fs.writeFileSync(path, strOpenAPI, 'utf8');
-  //console.log(path);
 }
 
 function validateOpenAPI(openapi, cb) {
@@ -117,18 +124,16 @@ function validateOpenAPI(openapi, cb) {
     if (!options.valid) {
       console.log(JSON.stringify(openapi, null, 2));
       console.warn(JSON.stringify(validationResults.errors, null, 2));
-      console.warn('Exiting with 1');
-      process.exit(1);
+      process.exitCode = 1;
     }
-    cb(openapi);
+    cb(!options.valid, openapi);
   })
   .catch(validationError => {
-      cb(openapi);
+      cb(validationError, openapi);
       console.warn(validationError.message);
       if (options && options.context) {
         console.warn(options.context.pop());
       }
-      console.warn('Exiting with 1');
-      process.exit(1);
+      process.exitCode = 1;
   });
 }
