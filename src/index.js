@@ -303,7 +303,7 @@ function processMethod(method) {
   //TODO: implement file upload/download - see https://github.com/APIs-guru/openapi-directory/issues/26
   //  * rest of fields in 'mediaUpload'
   //  * 'supportsMediaDownload' https://code.google.com/p/google-api-go-client/issues/detail?id=16
-  let consumes = 'application/json'; // FIXME?
+  let consumes = [ 'application/json' ]; // FIXME?
   if (method.supportsMediaUpload)
     consumes = convertMime(method.mediaUpload.accept);
 
@@ -313,7 +313,9 @@ function processMethod(method) {
 
   if ('request' in method) {
     srMethod.requestBody = { content: {} };
-    srMethod.requestBody.content[consumes] = { schema: processSchemaRef(method.request) };
+    for (let mediatype of consumes) {
+      srMethod.requestBody.content[mediatype] = { schema: processSchemaRef(method.request) };
+    }
   }
 
   srParameters = _.uniqWith(srParameters, pcomp);
