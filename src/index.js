@@ -76,6 +76,19 @@ exports.convert = function (data) {
     swagger.externalDocs = { url: data.documentationLink };
 
   removeUndefined(swagger);
+
+  const paths = {};
+  for (let p in swagger.paths) {
+    let pCount = 0;
+    const template = p.replace(/\{(.+?)\}/g, function (match, group1) {
+      return '{'+(pCount++)+'}';
+    });
+    if (paths[template]) {
+      swagger['x-hasEquivalentPaths'] = true;
+    }
+    paths[template] = true;
+  }
+
   return swagger;
 };
 
