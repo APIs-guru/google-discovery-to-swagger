@@ -9,6 +9,7 @@ const MIME = new MimeLookup(require('mime-db'));
 const jsonCompat = require('json-schema-compatibility');
 const jp = require('jsonpath');
 const traverse = require('traverse');
+const sortObject = require('deep-sort-object');
 
 let strict = true;
 let paramMap = {};
@@ -29,6 +30,8 @@ exports.convert = function (data) {
   assert.ok(exports.checkFormat(data), 'discoveryVersion is undefined');
   assert.equal(exports.getVersion(data), 'v1', 'GDD version is not \'v1\'');
   assert.equal(data.protocol, 'rest', 'Protocol is not \'rest\'');
+
+  data = sortObject(data);
 
   //fields that doesn't map to anything:
   //	id
@@ -363,7 +366,7 @@ function processParameterList(method) {
   let parameters = method.parameters || [];
   let paramOrder = _.uniq(method.parameterOrder || []);
 
-  //First push parameters based on 'paramOrder' field
+  //First push parameters based on 'parameterOrder' field
   let srParameters = _.map(paramOrder, function (name) {
     assert.ok(parameters[name], 'Undefined param used inside \'parameterOrder\': ' + name);
     return processParameter(name, parameters[name]);
