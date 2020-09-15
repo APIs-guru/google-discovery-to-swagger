@@ -76,7 +76,7 @@ exports.convert = function (data) {
   }, processResource(data, srGlobalRefParameters));
 
   if (data.documentationLink)
-    swagger.externalDocs = { url: data.documentationLink };
+    swagger.externalDocs = { url: data.documentationLink.trim() };
 
   removeUndefined(swagger);
 
