@@ -25,16 +25,16 @@
   "dependencies": {
     "deep-sort-object": "^1.0.2",
     "json-schema-compatibility": "^1.1.0",
-    "jsonpath": "^1.0.2",
-    "lodash": "^4.17.19",
-    "mime-db": "^1.44.0",
+    "jsonpath": "^1.1.1",
+    "lodash": "^4.17.21",
+    "mime-db": "^1.48.0",
     "mime-lookup": "^0.0.2",
     "traverse": "~0.6.6",
-    "urijs": "^1.19.2"
+    "urijs": "^1.19.6"
   },
   "devDependencies": {
     "mkdirp": "^0.5.5",
     "node-fetch": "^2.6.0",
-    "oas-validator": "^4.0.5"
+    "oas-validator": "^4.0.8"
   }
 }
