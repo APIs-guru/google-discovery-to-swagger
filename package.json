@@ -35,6 +35,6 @@
   "devDependencies": {
     "mkdirp": "^0.5.5",
     "node-fetch": "^2.6.0",
-    "oas-validator": "^4.0.8"
+    "oas-validator": "^5.0.8"
   }
 }
